@@ -201,7 +201,7 @@ public sealed class ClassGenerator
         if (Unit.Dimensions is not null)
         {
             string tuples = string.Join(", ", Unit.Dimensions);
-            var parameters = string.Join(", ", genericNames[..Unit.Dimensions.Length].Select(g => $"value.{g}Value"));
+            var parameters = string.Join(", ", Generics.GetUnitNames(Unit).Select(g => $"value.{g}Value"));
             yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.Name}.</summary>";
             string opString = $"\tpublic static implicit operator ({tuples}) ({Unit.Name} value) => new ({parameters});";
 
@@ -223,9 +223,7 @@ public sealed class ClassGenerator
         // TODO : e.g. SquareMeter * SquareMeter should not be allowed!
         
         // Maths
-        string[] mathmaticOperators = new string[] { "+", "-", "/", "*" };
-        
-        foreach(var @operator in mathmaticOperators)
+        foreach(var @operator in Numerics.MathmaticOperators)
         {
             yield return string.Empty;
             yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" + 
@@ -273,8 +271,7 @@ public sealed class ClassGenerator
         yield return string.Empty;
         
         // Greater, Less Than etc.
-        string[] gtolt = new string[] { "<", ">", "<=", ">=" };
-        foreach (var statement in gtolt)
+        foreach (var statement in Numerics.ComparisonOperators)
         {
             yield return string.Empty;
             yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Unit.Name} right)" +
