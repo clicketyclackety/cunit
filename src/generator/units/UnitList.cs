@@ -44,7 +44,7 @@ public static class UnitList
         var centimeter = new UnitDescription("Centimeter", "cm", meter, Calculation:"value / 100");
         var millimeter = new UnitDescription("Millimeter", "mm", meter, Calculation:"value / 1000");
         var foot = new UnitDescription("Foot", "ft", meter, Calculation:"value *  1 / 39.37");
-        var inch = new UnitDescription("Inch", "in", meter, Calculation:"value *  1 / 3.281");
+        var inch = new UnitDescription("Inch", "in", meter, Calculation:"value *  0.00254");
         
         UnitDescription[] distanceUnits = new []
         {
@@ -92,7 +92,7 @@ public static class UnitList
         
         #region HYBRID UNITS
 
-        yield return new UnitDescription("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}", null, new[] { meter.Name, second.Name }, "xx / yy");
+        yield return new UnitDescription("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}", null, new[] { meter.Name, second.Name }, "<0> / yy");
         yield return new UnitDescription("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, "xx / (yy * yy)");
 
         #endregion

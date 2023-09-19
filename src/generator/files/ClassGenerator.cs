@@ -1,7 +1,6 @@
 using System.Reflection;
 using generator.units;
 using generators.foundations;
-using generators.units;
 
 namespace generators.files;
 
@@ -33,14 +32,20 @@ public sealed class ClassGenerator
 
     public void Generate()
     {
-        Lines.AddRange(GenerateNamespace());
+        Lines.Clear();
         
+        Lines.AddRange(GenerateNamespace());
         Lines.AddRange(GenerateClassHeader());
         Lines.AddRange(GenerateClassProperties());
         Lines.AddRange(GenerateClassConstructors());
         Lines.AddRange(GenerateClassMethods());
-        Lines.AddRange(GenerateClassOperators());
-        
+        Lines.AddRange(GenerateImplicitOperators());
+        Lines.AddRange(GenerateTupleOperators());
+        Lines.AddRange(GeneratePlusMinusOperators());
+        Lines.AddRange(GenerateMultiplyDivideOperators());
+        Lines.AddRange(GeneratePositiveNegativeOperators());
+        Lines.AddRange(GenerateGreaterLessThansOperators());
+        Lines.AddRange(GenerateEquality());
         Lines.AddRange(GenerateClassFooter());
         
         Lines.Add(string.Empty);
@@ -61,19 +66,6 @@ public sealed class ClassGenerator
         yield return "{";
         yield return string.Empty;
     }
-
-    private string GetCalculation()
-    {
-        string formulae = Unit.Formula?.ToLowerInvariant();
-        foreach (var genericName in genericNames)
-        {
-            string parameterName = $"{genericName.ToUpperInvariant()}Value";
-            string varName = genericName.ToLowerInvariant();
-            formulae = formulae.Replace($"{varName}{varName}", parameterName);
-        }
-
-        return formulae.ToLowerInvariant();
-    }
     
     private IEnumerable<string> GenerateClassProperties()
     {
@@ -83,6 +75,7 @@ public sealed class ClassGenerator
             var names = Generics.GetUnitParameterNames(Unit);
 
             yield return $"\tprivate readonly {Numerics.NumberType} _preComputedValue = 1;";
+            yield return string.Empty;
             
             yield return "\t/// <summary>The numeric value of this unit</summary>";
             yield return $"\tpublic readonly {Numerics.NumberType} Value => _preComputedValue;";
@@ -116,7 +109,7 @@ public sealed class ClassGenerator
                 string paramName = paramNames[i].ToLowerInvariant();
                 paramPair.Add($"{Numerics.NumberType} {paramName} = 1");
                 
-                yield return $"\t/// <param name=\"{paramName}\">{Numerics.NumberType}</param>";
+                yield return $"\t/// <param name=\"{paramName}\">Dimension</param>";
             }
             yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
             yield return "\t{";
@@ -136,6 +129,7 @@ public sealed class ClassGenerator
             yield return "\t\tValue = value;";
             yield return string.Empty;
         }
+        
         yield return $"\t\t_preComputedHashCode = HashCode.Combine(\"{Unit.Name}\", Value);";
         yield return $"\t\t_preComputedToString = $\"{{Value:0.000}} {Unit.Symbol}\";";
         yield return "\t}";
@@ -158,11 +152,9 @@ public sealed class ClassGenerator
         yield return "\t#endregion";
         yield return string.Empty;
     }
-
-    private static char[] operators = new[] { '/', '*', '-', '+' };
     
     // Single Dimensions
-    private IEnumerable<string> GenerateClassOperators()
+    private IEnumerable<string> GenerateImplicitOperators()
     {
         yield return "\t#region Operators";
         yield return string.Empty;
@@ -172,31 +164,34 @@ public sealed class ClassGenerator
         yield return string.Empty;
         
         yield return $"\t/// <summary>Converts a {Numerics.NumberType} into this Unit.</summary>";
-        yield return $"\tpublic static implicit operator {Unit.Name}({Numerics.NumberType} value) => new {Unit.Name}(value);";
+        yield return $"\tpublic static implicit operator {Unit.Name}({Numerics.NumberType} value) => new (value);";
         yield return string.Empty;
 
         if (Unit.BaseUnit is not null)
         {
             yield return $"\t/// <summary>Converts {Unit.BaseUnit.Name} into this Unit.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new {Unit.BaseUnit.Name}({Unit.Calculation.Replace("value", "value.Value")});";
+            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new ({Unit.Calculation.Replace("value", "value.Value")});";
             yield return string.Empty;
             
             yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>"; // TODO : INVERT CALCULATIONS? HOW?
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new {Unit.Name}({Unit.Calculation.Replace("value", "value.Value")});";
+            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new ({Unit.Calculation.Replace("value", "value.Value")});";
             yield return string.Empty;
         }
 
         // TODO : This doesn't help?
         // TODO : We want to matrix things to cast into other things!
         // TODO : Create a partial class for clarity?
-        foreach (var baseUnit in GetRelatedUnits())
+        foreach (var baseUnit in Utils.GetRelatedUnits(Unit))
         {
             yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
             yield return
-                $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({baseUnit.Calculation.Replace("value", "value.Value")} * {Unit.Calculation.Replace("value", "value.Value")});";
+                $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({Calculations.GetCalcuation(Unit, baseUnit)});";
             yield return string.Empty;
         }
+    }
 
+    private IEnumerable<string> GenerateTupleOperators()
+    {
         // Tuple Operators
         if (Unit.Dimensions is not null)
         {
@@ -213,47 +208,80 @@ public sealed class ClassGenerator
         
         // More complexity now!
         yield return string.Empty;
-        
+    }
+    
+    private IEnumerable<string> GeneratePlusMinusOperators()
+    {
         yield return "\t#region Mathmatic Operators";
         yield return string.Empty;
         
-        
-        // TODO : We should not allow / or * if there is no unit it can be muiltiplied or divided into!
-        // TODO : e.g. Meter / Meter should not be allowed
-        // TODO : e.g. SquareMeter * SquareMeter should not be allowed!
-        
-        // Maths
-        foreach(var @operator in Numerics.MathmaticOperators)
+        // + and -
+        foreach(var @operator in new [] { "+", "-"})
         {
             yield return string.Empty;
-            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" + 
-                         $"=> left.Value {@operator} right.Value;";
             
-            foreach (var relatedUnit in GetRelatedUnits())
-            {
+            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" +
+                         $"=> left.Value {@operator} right.Value;";
+
+            foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
+            {   
                 yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)" +
                              $" => left.Value {@operator} ({Unit.Name})right;";
             }
-
-            var relatedInOps = GetUnitsThatContainThisUnitInAnEquation(@operator);
-            foreach (var unit in relatedInOps)
-            {
-                ;
-                
-            }
-
-            if (@operator == "/" && Unit.Dimensions?.Length == 2)
-            {
-                yield return
-                    $"\tpublic static {Unit.Dimensions[0]} operator {@operator}({Unit.Name} left, {Unit.Dimensions[1]} right)" +
-                    $" => left.Value {@operator} right.Value;";
-            }
         }
+    }
+
+    private IEnumerable<string> GenerateMultiplyDivideOperators()
+    {
+        // TODO : We should not allow / or * if there is no unit it can be muiltiplied or divided into!
+        // TODO : e.g. Meter / Meter should not be allowed
+        // TODO : e.g. SquareMeter * SquareMeter should not be allowed
+
+        int dimensionCount = Unit.Dimensions?.Length ?? 1;
+
+        yield return string.Empty;
+            
+        IEnumerable<(string left, string right)> unitPairs = Utils.GetUnitPairs(Unit);
+        foreach(var unitPair in unitPairs)
+        {
+            yield return $"\tpublic static {unitPair.left} operator *({Unit.Name} left, {unitPair.right} right)" +
+                         $" => left.Value * right.Value;";
+        }
+
+        yield return string.Empty;
+        
+        /*
+        // + and -
+        foreach(var @operator in new [] { "/", "*"})
+        {
+            // TODO : * and / MUST BE FIGURED OUT FROM CALCULATIONS
+            
+            // TODO : ARBITRARY
+            if (@operator == "*" && dimensionCount >= 2)
+                continue;
+            
+            if (@operator == "/" && dimensionCount == 1)
+                continue;
+            
+            yield return string.Empty;
+            
+            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" +
+                         $"=> left.Value {@operator} right.Value;";
+
+            foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
+            {   
+                yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)" +
+                             $" => left.Value {@operator} ({Unit.Name})right;";
+            }
+        }*/
 
         yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
-        
+    }
+    
+    private IEnumerable<string> GeneratePositiveNegativeOperators()
+    {
         // Positive & Negative
         yield return "\t#region Positive / Negative Operators";
         yield return string.Empty;
@@ -266,7 +294,10 @@ public sealed class ClassGenerator
         yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
-        
+    }
+    
+    private IEnumerable<string> GenerateGreaterLessThansOperators()
+    {
         yield return "\t#region Greater/Less";
         yield return string.Empty;
         
@@ -275,18 +306,22 @@ public sealed class ClassGenerator
         {
             yield return string.Empty;
             yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Unit.Name} right)" +
-            $" => left.Value {statement} right.Value;";
+                         $" => left.Value {statement} right.Value;";
             
-            foreach (var relatedUnit in GetRelatedUnits())
+            foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
             {
                 yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {relatedUnit.Name} right)" +
-                          $" => left.Value {statement} ({Unit.Name})right;";
+                             $" => left.Value {statement} ({Unit.Name})right;";
             }
         }
         
         yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
+    }
+    
+    private IEnumerable<string> GenerateEquality()
+    {
 
         yield return "\t#region Equality";
         yield return string.Empty;
@@ -300,7 +335,7 @@ public sealed class ClassGenerator
         yield return $"\tpublic static bool operator !=({Unit.Name} left, {Unit.Name} right) => !(left == right);";
         yield return string.Empty;
         
-        foreach (var relatedUnits in GetRelatedUnits())
+        foreach (var relatedUnits in Utils.GetRelatedUnits(Unit))
         {
             yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for equality (no tolerance used)</summary>";
             yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnits.Name} right)" +
@@ -329,7 +364,7 @@ public sealed class ClassGenerator
         yield return "\t#endregion";
         yield return string.Empty;
     }
-
+    
     private IEnumerable<UnitList.UnitDescription> GetUnitsThatContainThisUnitInAnEquation(string @operator = null)
     {
         foreach (var unit in UnitList.GetUnits())
@@ -349,26 +384,6 @@ public sealed class ClassGenerator
             yield return unit;
         }
     }
-
-    private IEnumerable<UnitList.UnitDescription> GetRelatedUnits()
-    {
-        if (this.Unit.BaseUnit is null)
-            yield break;
-        
-        foreach (var unit in UnitList.GetUnits())
-        {
-            if (unit.BaseUnit is null)
-                continue;
-
-            if (unit.Name == this.Unit.Name)
-                continue;
-
-            if (unit.BaseUnit != this.Unit.BaseUnit)
-                continue;
-            
-            yield return unit;
-        }
-    }
     
     private IEnumerable<string> GenerateClassFooter()
     {
@@ -378,20 +393,17 @@ public sealed class ClassGenerator
 
     public IReadOnlyCollection<string> GetLines() => Lines;
 
-    private string CombineCalcuationAndDimensions()
+    private string GetCalculation()
     {
-        if (Unit.Dimensions is null)
-            return Unit.Calculation;
-        
-        string upperCalc = Unit.Calculation.ToUpperInvariant();
-        for (int i = 0; i < Unit.Dimensions.Length; i++)
+        string formulae = Unit.Formula?.ToLowerInvariant();
+        foreach (var genericName in genericNames)
         {
-            string upperGeneric = genericNames[i].ToUpperInvariant();
-            string doubleGeneric = $"{upperGeneric}{upperGeneric}";
-            upperCalc = upperCalc.Replace(doubleGeneric, Unit.Dimensions[i]);
+            string parameterName = $"{genericName.ToUpperInvariant()}Value";
+            string varName = genericName.ToLowerInvariant();
+            formulae = formulae.Replace($"{varName}{varName}", parameterName);
         }
 
-        return upperCalc;
+        return formulae.ToLowerInvariant();
     }
 
 }
