@@ -7,3 +7,4 @@ riderModule.iml
 src/cunit/*.cs
 
 *.DS_Store
+*/.DS_Store

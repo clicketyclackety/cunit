@@ -9,13 +9,8 @@ public sealed class ClassGenerator
 {
     private readonly List<string> Lines;
     private UnitList.UnitDescription Unit;
-    
-    private static readonly string[] genericNames = new[]
-    {
-        "X", "Y", "Z", "T", "U", "V", "W"
-    };
 
-    private static string GetGenericName(int i) => genericNames[i];
+    private static string[] genericNames => Generics.Names;
 
     internal ClassGenerator(UnitList.UnitDescription unitDescription)
     {
@@ -51,13 +46,13 @@ public sealed class ClassGenerator
         Lines.Add(string.Empty);
     }
     
-    protected IEnumerable<string> GenerateNamespace()
+    private IEnumerable<string> GenerateNamespace()
     {
-        yield return $"namespace {this.GetType().Namespace.Replace(nameof(generator), "cunit")};";
+        yield return $"namespace cunit;";
         yield return string.Empty;
     }
     
-    protected IEnumerable<string> GenerateClassHeader()
+    private IEnumerable<string> GenerateClassHeader()
     {
         yield return "/// <summary>";
         yield return $"/// Represents a {Unit.Name} Unit.";
@@ -80,49 +75,45 @@ public sealed class ClassGenerator
         return formulae.ToLowerInvariant();
     }
     
-    protected IEnumerable<string> GenerateClassProperties()
+    private IEnumerable<string> GenerateClassProperties()
     {
         // If we have multiple dimensions, this should be more complex
         if (Unit.Dimensions?.Length > 1)
         {
-            var names = genericNames[..Unit.Dimensions.Length].Select(g => $"{g}Value");
+            var names = Generics.GetUnitParameterNames(Unit);
 
-            yield return $"\tprivate readonly double _preComputedValue = 1;";
+            yield return $"\tprivate readonly {Numerics.NumberType} _preComputedValue = 1;";
             
             yield return "\t/// <summary>The numeric value of this unit</summary>";
             yield return $"\tpublic readonly {Numerics.NumberType} Value => _preComputedValue;";
             yield return string.Empty;
             
-            int i = 0;
-            foreach(var dimension in Unit.Dimensions)
+            foreach(var pair in Generics.GetUnitTypeParameterPairs(Unit))
             {
                 yield return "\t/// <summary>The value of this unit</summary>";
-                yield return $"\tprivate readonly {dimension} {GetGenericName(i)}Value = 1;";
-
-                i++;
+                yield return $"\tprivate readonly {pair.Dim} {pair.Param} = 1;";
             }
         }
         else
         {
-            yield return "\t/// <summary>The double value of this unit</summary>";
+            yield return $"\t/// <summary>The {Numerics.NumberType} value of this unit</summary>";
             yield return $"\tpublic readonly {Numerics.NumberType} Value = 1;";
         }
         yield return string.Empty;
     }
 
-    protected IEnumerable<string> GenerateClassConstructors()
+    private IEnumerable<string> GenerateClassConstructors()
     {
         // If we have multiple dimensions, this should be more complex
         
         yield return $"\t/// <summary>Creates a new instance of a {Unit.Name}</summary>";
         if (Unit.Dimensions?.Length > 1)
         {
-            string[] paramNames = genericNames[..Unit.Dimensions.Length].Select(g => $"{g}Value").ToArray();
+            string[] paramNames = Generics.GetUnitParameterNames(Unit);
             List<string> paramPair = new List<string>();
             for (int i = 0; i < Unit.Dimensions.Length; i++)
             {
                 string paramName = paramNames[i].ToLowerInvariant();
-                string dimensionName = Unit.Dimensions[i];
                 paramPair.Add($"{Numerics.NumberType} {paramName} = 1");
                 
                 yield return $"\t/// <param name=\"{paramName}\">{Numerics.NumberType}</param>";
@@ -130,12 +121,11 @@ public sealed class ClassGenerator
             yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
             yield return "\t{";
             
-            int j = 0;
-            foreach(var dimension in Unit.Dimensions)
+            foreach(var paramName in Generics.GetUnitParameterNames(Unit))
             {
-                yield return $"\t\t{paramNames[j]} = {paramNames[j].ToLowerInvariant()};";
-                j++;
+                yield return $"\t\t{paramName} = {paramName.ToLowerInvariant()};";
             }
+            
             yield return string.Empty;
             yield return $"\t\t_preComputedValue = {GetCalculation()};";
         }
@@ -152,7 +142,7 @@ public sealed class ClassGenerator
         yield return string.Empty;
     }
 
-    protected IEnumerable<string> GenerateClassMethods()
+    private IEnumerable<string> GenerateClassMethods()
     {
         yield return "\t#region Methods";
         yield return string.Empty;
@@ -172,7 +162,7 @@ public sealed class ClassGenerator
     private static char[] operators = new[] { '/', '*', '-', '+' };
     
     // Single Dimensions
-    protected IEnumerable<string> GenerateClassOperators()
+    private IEnumerable<string> GenerateClassOperators()
     {
         yield return "\t#region Operators";
         yield return string.Empty;
@@ -187,57 +177,37 @@ public sealed class ClassGenerator
 
         if (Unit.BaseUnit is not null)
         {
-            yield return $"\t/// <summary>Converts a {Unit.BaseUnit.Name} into this Unit.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new {Unit.BaseUnit.Name}(value * {Unit.Ratio});";
+            yield return $"\t/// <summary>Converts {Unit.BaseUnit.Name} into this Unit.</summary>";
+            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new {Unit.BaseUnit.Name}({Unit.Calculation.Replace("value", "value.Value")});";
             yield return string.Empty;
             
-            yield return $"\t/// <summary>Converts a {Unit.Name} into a {Unit.BaseUnit.Name}.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new {Unit.Name}(value / {Unit.Ratio});";
+            yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>"; // TODO : INVERT CALCULATIONS? HOW?
+            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new {Unit.Name}({Unit.Calculation.Replace("value", "value.Value")});";
             yield return string.Empty;
         }
-        
-        /*
-        // Get mulitpliers, create operators between operators
-        FieldInfo[] multis = Writer.GetConstants(typeof(BaseTenPrefixes))
-                                .Where(m => !m.Name.Contains(nameof(BaseTenPrefixes.Singular)))
-                                .Where(m => !m.Name.Contains(Unit.Name))
-                                .ToArray();
 
-        if(!Unit.BaseUnit.Name.ToLowerInvariant().StartsWith(Unit.Name.ToLowerInvariant()))
+        // TODO : This doesn't help?
+        // TODO : We want to matrix things to cast into other things!
+        // TODO : Create a partial class for clarity?
+        foreach (var baseUnit in GetRelatedUnits())
         {
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new {Unit.Name}(value / {Unit.Multiplier.GetValue(null)});";
-        }
-
-        foreach (var multi in multis)
-        {
-            var multiName = $"{multi.Name}{Unit.BaseUnit.Name.ToLowerInvariant()}";
-            if (multiName == Unit.Name)
-                continue;
-
+            yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
             yield return
-                $"\tpublic static implicit operator {Unit.Name}({multiName} value) => new {Unit.Name}(value * {multi.GetValue(null)} / {Unit.Multiplier.GetValue(null)});";
+                $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({baseUnit.Calculation.Replace("value", "value.Value")} * {Unit.Calculation.Replace("value", "value.Value")});";
+            yield return string.Empty;
         }
 
         // Tuple Operators
-        foreach (var dimUnit in Unit.Dimensions)
+        if (Unit.Dimensions is not null)
         {
-            // Duplication?
-            foreach (var compatDims in dimUnit.CompatibleDimensions)
-            {
-                if (compatDims.Length <= 1)
-                    continue;
+            string tuples = string.Join(", ", Unit.Dimensions);
+            var parameters = string.Join(", ", genericNames[..Unit.Dimensions.Length].Select(g => $"value.{g}Value"));
+            yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.Name}.</summary>";
+            string opString = $"\tpublic static implicit operator ({tuples}) ({Unit.Name} value) => new ({parameters});";
 
-                string opString = $"\tpublic static implicit operator (";
-                string tuples = string.Join(", ", compatDims.Select(cd => Writer.UnitLookup[cd].Name));
-                opString += tuples;
-                var value = Unit.Multiplier.GetValue(null);
-                opString += $") ({Unit.Name} value) => new ValueTuple<{tuples}>(value * {value}, value * {value});";
-
-                yield return opString;
-            }
+            yield return opString;
+            yield return string.Empty;
         }
-
-        */
 
         yield return "\t#endregion";
         
@@ -247,14 +217,39 @@ public sealed class ClassGenerator
         yield return "\t#region Mathmatic Operators";
         yield return string.Empty;
         
+        
+        // TODO : We should not allow / or * if there is no unit it can be muiltiplied or divided into!
+        // TODO : e.g. Meter / Meter should not be allowed
+        // TODO : e.g. SquareMeter * SquareMeter should not be allowed!
+        
         // Maths
         string[] mathmaticOperators = new string[] { "+", "-", "/", "*" };
         
         foreach(var @operator in mathmaticOperators)
         {
             yield return string.Empty;
-            yield return $"\tpublic static {Numerics.NumberType} operator {@operator}({Unit.Name} left, {Unit.Name} right)" + 
+            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" + 
                          $"=> left.Value {@operator} right.Value;";
+            
+            foreach (var relatedUnit in GetRelatedUnits())
+            {
+                yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)" +
+                             $" => left.Value {@operator} ({Unit.Name})right;";
+            }
+
+            var relatedInOps = GetUnitsThatContainThisUnitInAnEquation(@operator);
+            foreach (var unit in relatedInOps)
+            {
+                ;
+                
+            }
+
+            if (@operator == "/" && Unit.Dimensions?.Length == 2)
+            {
+                yield return
+                    $"\tpublic static {Unit.Dimensions[0]} operator {@operator}({Unit.Name} left, {Unit.Dimensions[1]} right)" +
+                    $" => left.Value {@operator} right.Value;";
+            }
         }
 
         yield return string.Empty;
@@ -284,6 +279,12 @@ public sealed class ClassGenerator
             yield return string.Empty;
             yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Unit.Name} right)" +
             $" => left.Value {statement} right.Value;";
+            
+            foreach (var relatedUnit in GetRelatedUnits())
+            {
+                yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {relatedUnit.Name} right)" +
+                          $" => left.Value {statement} ({Unit.Name})right;";
+            }
         }
         
         yield return string.Empty;
@@ -302,9 +303,16 @@ public sealed class ClassGenerator
         yield return $"\tpublic static bool operator !=({Unit.Name} left, {Unit.Name} right) => !(left == right);";
         yield return string.Empty;
         
-        // TODO : Needs to handle Multi-dimension objects
+        foreach (var relatedUnits in GetRelatedUnits())
+        {
+            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for equality (no tolerance used)</summary>";
+            yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnits.Name} right)" +
+                         $" => left.Equals(right);";
         
-        
+            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for inequality (no tolerance used)</summary>";
+            yield return $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnits.Name} right) => !(left == right);";
+            yield return string.Empty;
+        }
         
         yield return string.Empty;
         yield return $"\tprivate readonly int _preComputedHashCode = -1;";
@@ -312,7 +320,7 @@ public sealed class ClassGenerator
         yield return string.Empty;
         yield return $"\tpublic override bool Equals(object? obj) => obj is {Unit.Name} unit && Equals(unit);";
         yield return string.Empty;
-        yield return $"\tpublic bool Equals({Unit.Name} unit) => (this.Value / unit.Value) - 0.0001 <= 0;";
+        yield return $"\tpublic bool Equals({Unit.Name} unit) => (this.Value - unit.Value) - cunit.Constants.Tolerance <= 0;";
         yield return string.Empty;
         yield return "\tprivate readonly string _preComputedToString = \"Unset\";"; 
         yield return $"\tpublic override string ToString() => _preComputedToString;";
@@ -324,13 +332,69 @@ public sealed class ClassGenerator
         yield return "\t#endregion";
         yield return string.Empty;
     }
+
+    private IEnumerable<UnitList.UnitDescription> GetUnitsThatContainThisUnitInAnEquation(string @operator = null)
+    {
+        foreach (var unit in UnitList.GetUnits())
+        {
+            if (string.IsNullOrEmpty(unit.Calculation))
+                continue;
+
+            if (unit == Unit)
+                continue;
+
+            if (unit.BaseUnit != Unit || unit.BaseUnit != Unit.BaseUnit)
+                continue;
+
+            if (!string.IsNullOrEmpty(@operator) && !unit.Calculation.Contains(@operator))
+                continue;
+            
+            yield return unit;
+        }
+    }
+
+    private IEnumerable<UnitList.UnitDescription> GetRelatedUnits()
+    {
+        if (this.Unit.BaseUnit is null)
+            yield break;
+        
+        foreach (var unit in UnitList.GetUnits())
+        {
+            if (unit.BaseUnit is null)
+                continue;
+
+            if (unit.Name == this.Unit.Name)
+                continue;
+
+            if (unit.BaseUnit != this.Unit.BaseUnit)
+                continue;
+            
+            yield return unit;
+        }
+    }
     
-    protected IEnumerable<string> GenerateClassFooter()
+    private IEnumerable<string> GenerateClassFooter()
     {
         yield return "}";
         yield return string.Empty;
     }
 
     public IReadOnlyCollection<string> GetLines() => Lines;
+
+    private string CombineCalcuationAndDimensions()
+    {
+        if (Unit.Dimensions is null)
+            return Unit.Calculation;
+        
+        string upperCalc = Unit.Calculation.ToUpperInvariant();
+        for (int i = 0; i < Unit.Dimensions.Length; i++)
+        {
+            string upperGeneric = genericNames[i].ToUpperInvariant();
+            string doubleGeneric = $"{upperGeneric}{upperGeneric}";
+            upperCalc = upperCalc.Replace(doubleGeneric, Unit.Dimensions[i]);
+        }
+
+        return upperCalc;
+    }
 
 }
