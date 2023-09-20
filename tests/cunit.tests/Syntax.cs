@@ -35,7 +35,24 @@ public class Tests
 
         Farenheight f = 30;
         Celcius c = 42;
-        Kelvin k = c - f;
+        Kelvin k = (c - f) * 20; 
+    }
+
+    [Test]
+    public void TestGreatherThan()
+    {
+        Meter m = 100;
+        Centimeter cm = 200;
+        if (m > cm ||
+            m < cm ||
+            m == cm ||
+            m != cm ||
+            cm == mm ||
+            cm == cm ||
+            cm >= m)
+        {
+            
+        }
     }
     
 }
