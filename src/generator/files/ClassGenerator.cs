@@ -62,10 +62,13 @@ public sealed class ClassGenerator
         yield return "/// <summary>";
         yield return $"/// Represents a {Unit.Name} Unit.";
         yield return "/// </summary>";
-        var classDeclaration = $"public readonly struct {Unit.Name} :";
+        var classDeclaration = $"public readonly struct {Unit.Name} : IEquatable<{Numerics.NumberType}>";
 
         var iequatables = new List<string>();
-        foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
+        var relatedUnits = Utils.GetRelatedUnits(Unit);
+        if (relatedUnits is not null && relatedUnits.Count() > 0)
+            classDeclaration += ", ";
+        foreach (var relatedUnit in relatedUnits)
         {
             iequatables.Add($"IEquatable<{relatedUnit.Name}>");
         }
@@ -186,17 +189,17 @@ public sealed class ClassGenerator
             yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>"; // TODO : INVERT CALCULATIONS? HOW?
             yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new ({Unit.Calculation.Replace("<v>", "value.Value")});";
             yield return string.Empty;
-        }
 
-        foreach (var baseUnit in Utils.GetRelatedUnits(Unit))
-        {
-            if (baseUnit == Unit.BaseUnit)
-                continue;
-            
-            yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
-            yield return
-                $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({Calculations.GetCalcuation(Unit, baseUnit)});";
-            yield return string.Empty;
+            foreach (var baseUnit in Utils.GetRelatedUnits(Unit))
+            {
+                if (baseUnit == Unit.BaseUnit)
+                    continue;
+                
+                yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
+                yield return
+                    $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({Calculations.GetCalcuation(Unit, baseUnit)});";
+                yield return string.Empty;
+            }
         }
     }
 
@@ -223,12 +226,16 @@ public sealed class ClassGenerator
     private IEnumerable<string> GeneratePlusMinusOperators()
     {
         yield return "\t#region Mathmatic Operators";
-        yield return string.Empty;
         
         // + and -
         foreach(var @operator in new [] { "+", "-"})
         {
             yield return string.Empty;
+
+            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Numerics.NumberType} right)" +
+                         $"=> left.Value {@operator} right;";
+            yield return $"\tpublic static {Unit.Name} operator {@operator}({Numerics.NumberType} left, {Unit.Name} right)" +
+                         $"=> left {@operator} right.Value;";
             
             yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" +
                          $"=> left.Value {@operator} right.Value;";
@@ -243,45 +250,14 @@ public sealed class ClassGenerator
 
     private IEnumerable<string> GenerateMultiplyDivideOperators()
     {
-        // TODO : We should not allow / or * if there is no unit it can be muiltiplied or divided into!
-        // TODO : e.g. Meter / Meter should not be allowed
-        // TODO : e.g. SquareMeter * SquareMeter should not be allowed
-
-        int dimensionCount = Unit.Dimensions?.Length ?? 1;
-
         yield return string.Empty;
         
-        // * operators
-
-        yield return string.Empty;
-        
-        /*
-        // + and -
-        foreach(var @operator in new [] { "/", "*"})
-        {
-            // TODO : * and / MUST BE FIGURED OUT FROM CALCULATIONS
-            
-            // TODO : ARBITRARY
-            if (@operator == "*" && dimensionCount >= 2)
-                continue;
-            
-            if (@operator == "/" && dimensionCount == 1)
-                continue;
-            
-            yield return string.Empty;
-            
-            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" +
-                         $"=> left.Value {@operator} right.Value;";
-
-            foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
-            {   
-                yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)" +
-                             $" => left.Value {@operator} ({Unit.Name})right;";
-            }
-        }*/
-        
-        
-        var unitPairs = Utils.GetBuildPieces(Unit);
+        yield return $"\tpublic static {Unit.Name} operator /({Unit.Name} left, {Numerics.NumberType} right)" +
+                     $"=> left.Value / right;";
+        yield return $"\tpublic static {Unit.Name} operator /({Numerics.NumberType} left, {Unit.Name} right)" +
+                     $"=> left / right.Value;";
+     
+        var unitPairs = Utils.GetBuildPieces(Unit);   
         foreach (var unitPair in unitPairs)
         {
             if (unitPair.Count < 2)
@@ -298,6 +274,12 @@ public sealed class ClassGenerator
                 $"\tpublic static {unitPair[1].Name} operator /({Unit.Name} left, {unitPair[0].Name} right)" +
                 $" => left.Value / right.Value;";
         }
+        
+        yield return string.Empty;
+        yield return $"\tpublic static {Unit.Name} operator *({Unit.Name} left, {Numerics.NumberType} right)" +
+                     $"=> left.Value * right;";
+        yield return $"\tpublic static {Unit.Name} operator *({Numerics.NumberType} left, {Unit.Name} right)" +
+                     $"=> left * right.Value;";
         
         var setPairs = Utils.GetBuildingSets(Unit);
         foreach (var setPair in setPairs)
@@ -339,7 +321,10 @@ public sealed class ClassGenerator
         // Greater, Less Than etc.
         foreach (var statement in Numerics.ComparisonOperators)
         {
-            yield return string.Empty;
+            yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Numerics.NumberType} right)" +
+                         $" => left.Value {statement} right;";
+            yield return $"\tpublic static bool operator {statement}({Numerics.NumberType} left, {Unit.Name} right)" +
+                         $" => left {statement} right.Value;";
             yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Unit.Name} right)" +
                          $" => left.Value {statement} right.Value;";
             
@@ -348,6 +333,8 @@ public sealed class ClassGenerator
                 yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {relatedUnit.Name} right)" +
                              $" => left.Value {statement} ({Unit.Name})right;";
             }
+            
+            yield return string.Empty;
         }
         
         yield return string.Empty;
@@ -362,6 +349,28 @@ public sealed class ClassGenerator
         yield return string.Empty;
 
         // Equality and Hashing
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for equality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator ==({Unit.Name} left, {Numerics.NumberType} right)" +
+                     $" => left.Equals(right);";
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for inequality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator !=({Unit.Name} left, {Numerics.NumberType} right) => !(left == right);";
+        
+        yield return
+            $"\t/// <summary>Compares this {Numerics.NumberType} with a {Unit.Name} for equality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator ==({Numerics.NumberType} left, {Unit.Name} right)" +
+                     $" => left.Equals(right);";
+        yield return
+            $"\t/// <summary>Compares this {Numerics.NumberType} with a {Unit.Name} for inequality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator !=({Numerics.NumberType} left, {Unit.Name} right) => !(left == right);";
+        
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for Equality (Constants Tolerance used)</summary>";
+        yield return
+            $"\tpublic bool Equals({Numerics.NumberType} unit) => (this.Value - unit) - cunit.Constants.Tolerance <= 0;";
+        yield return string.Empty;
+        
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for equality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator ==({Unit.Name} left, {Unit.Name} right)" +

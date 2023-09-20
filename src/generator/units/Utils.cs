@@ -8,24 +8,29 @@ public static class Utils
     
     public static IEnumerable<UnitList.UnitDescription> GetRelatedUnits(UnitList.UnitDescription unit)
     {
+        var units = UnitList.GetUnits();
         if (unit.BaseUnit is null)
-            yield break;
+        {
+            units = units.Where(u => u.BaseUnit == unit);
+        }
+        else
+        {
+            yield return unit.BaseUnit;
+        }
         
-        foreach (var relatedUnit in UnitList.GetUnits())
+        foreach (var relatedUnit in units)
         {
             if (relatedUnit.BaseUnit is null)
                 continue;
 
-            if (relatedUnit.Name == unit.Name)
+            if (relatedUnit == unit)
                 continue;
 
-            if (relatedUnit.BaseUnit != unit.BaseUnit)
+            if (relatedUnit.BaseUnit != (unit.BaseUnit ?? unit))
                 continue;
             
             yield return relatedUnit;
         }
-
-        yield return unit.BaseUnit;
     }
 
     public static IEnumerable<(string left, string right)> GetUnitPairsExhaustive(UnitList.UnitDescription unit)
