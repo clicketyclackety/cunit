@@ -53,6 +53,8 @@ public sealed class ClassGenerator
     
     private IEnumerable<string> GenerateNamespace()
     {
+        yield return $"using System.Globalization;";
+        yield return string.Empty;
         yield return $"namespace cunit;";
         yield return string.Empty;
     }
@@ -62,7 +64,7 @@ public sealed class ClassGenerator
         yield return "/// <summary>";
         yield return $"/// Represents a {Unit.Name} Unit.";
         yield return "/// </summary>";
-        var classDeclaration = $"public readonly struct {Unit.Name} : IEquatable<{Numerics.NumberType}>";
+        var classDeclaration = $"public readonly struct {Unit.Name} : IFormattable, IEquatable<{Numerics.NumberType}>";
 
         var iequatables = new List<string>();
         var relatedUnits = Utils.GetRelatedUnits(Unit);
@@ -143,8 +145,8 @@ public sealed class ClassGenerator
             yield return string.Empty;
         }
         
-        yield return $"\t\t_preComputedHashCode = HashCode.Combine(\"{Unit.Name}\", Value);";
-        yield return $"\t\t_preComputedToString = $\"{{Value:0.000}} {Unit.Symbol}\";";
+        yield return $"\t\t_preComputedHashCode = HashCode.Combine(nameof({Unit.Name}), Value);";
+        yield return $"\t\t_preComputedToString = ToString(\"G\");";
         yield return "\t}";
         yield return string.Empty;
     }
@@ -412,6 +414,13 @@ public sealed class ClassGenerator
         yield return string.Empty;
         yield return "\tprivate readonly string _preComputedToString = \"Unset\";";
         yield return $"\tpublic override string ToString() => _preComputedToString;";
+
+        yield return "\tpublic string ToString(string? format) => ToString(format, CultureInfo.CurrentCulture);";
+        
+        yield return "\tpublic string ToString(string? format, IFormatProvider? formatProvider)";
+        yield return "\t\t=> formatProvider switch {";
+        yield return $"\t\t\t_ => $\"{{Value.ToString(format ?? \"G\", formatProvider ?? CultureInfo.CurrentCulture)}} {Unit.Symbol}\",";
+        yield return "\t\t};";
 
         yield return string.Empty;
         yield return "\t#endregion";
