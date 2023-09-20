@@ -46,6 +46,7 @@ Everything in cunit is based on SI. Every unit is always a representation of a b
 # Building
 cunit is a completely (99%) generated library, because I am very lazy, and I think distilling the concept of a unit is much more fun. It also means creating a new unit inside the library will multiply across all existing units.
 (This also means errors propagate across every unit, which means errors are consistent)
+
 **To build cunit;**
 1. Clone this repo
 2. Use build in visual studio. CUnit will be generated
@@ -66,4 +67,4 @@ PRs don't have to be monumental, A PR that does nothing but add a new unit or co
 
 
 # Other waffle
-I hope you enjoy this library, I'm not sure if I can feasibly, or even legally stop you using it to create nuclear warheads, advance late stage capitalism or lobby for further fossil fuel drilling. But if you could just not, I'd really appreciate that. It would cost you $0 to not.
+I hope you enjoy this library, I'm not sure if I can feasibly, or even legally stop you using it to create nuclear warheads, advance late stage capitalism or lobby for further fossil fuel drilling. But if you could just not, I'd really appreciate that. It would cost you $0 to not do that, and you'd even be rewarded with my eternal gratitude.
