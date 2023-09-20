@@ -145,7 +145,7 @@ public sealed class ClassGenerator
             yield return string.Empty;
         }
         
-        yield return $"\t\t_preComputedHashCode = HashCode.Combine(nameof({Unit.Name}), Value);";
+        yield return $"\t\t_preComputedHashCode = nameof({Unit.Name}).GetHashCode() ^ Value.GetHashCode();";
         yield return $"\t\t_preComputedToString = ToString(\"G\");";
         yield return "\t}";
         yield return string.Empty;
