@@ -26,7 +26,7 @@ public static class Calculations
     public static string GetCalcuation(UnitList.UnitDescription left, UnitList.UnitDescription right)
     {
         return
-            $"{left.Calculation.Replace("value", "value.Value")} / {right.Calculation.Replace("value", "value.Value")}";
+            $"{left.Calculation.Replace("<v>", "value.Value")} / {right.Calculation.Replace("<v>", "value.Value")}";
     }
     
     public static string CombineCalcuationAndDimensions(UnitList.UnitDescription unit)

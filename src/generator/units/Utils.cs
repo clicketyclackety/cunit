@@ -24,6 +24,8 @@ public static class Utils
             
             yield return relatedUnit;
         }
+
+        yield return unit.BaseUnit;
     }
 
     public static IEnumerable<(string left, string right)> GetUnitPairsExhaustive(UnitList.UnitDescription unit)

@@ -62,7 +62,17 @@ public sealed class ClassGenerator
         yield return "/// <summary>";
         yield return $"/// Represents a {Unit.Name} Unit.";
         yield return "/// </summary>";
-        yield return $"public readonly struct {Unit.Name} : IEquatable<{Unit.Name}>";
+        var classDeclaration = $"public readonly struct {Unit.Name} :";
+
+        var iequatables = new List<string>();
+        foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
+        {
+            iequatables.Add($"IEquatable<{relatedUnit.Name}>");
+        }
+
+        classDeclaration += string.Join(", ", iequatables);
+        yield return classDeclaration;
+        
         yield return "{";
         yield return string.Empty;
     }
@@ -170,19 +180,19 @@ public sealed class ClassGenerator
         if (Unit.BaseUnit is not null)
         {
             yield return $"\t/// <summary>Converts {Unit.BaseUnit.Name} into this Unit.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new ({Unit.Calculation.Replace("value", "value.Value")});";
+            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new ({Unit.Calculation.Replace("<v>", "value.Value")});";
             yield return string.Empty;
             
             yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>"; // TODO : INVERT CALCULATIONS? HOW?
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new ({Unit.Calculation.Replace("value", "value.Value")});";
+            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new ({Unit.Calculation.Replace("<v>", "value.Value")});";
             yield return string.Empty;
         }
 
-        // TODO : This doesn't help?
-        // TODO : We want to matrix things to cast into other things!
-        // TODO : Create a partial class for clarity?
         foreach (var baseUnit in Utils.GetRelatedUnits(Unit))
         {
+            if (baseUnit == Unit.BaseUnit)
+                continue;
+            
             yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
             yield return
                 $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({Calculations.GetCalcuation(Unit, baseUnit)});";
@@ -360,6 +370,11 @@ public sealed class ClassGenerator
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator !=({Unit.Name} left, {Unit.Name} right) => !(left == right);";
+        
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
+        yield return
+            $"\tpublic bool Equals({Unit.Name} unit) => (this - unit).Value - cunit.Constants.Tolerance <= 0;";
         yield return string.Empty;
 
         foreach (var relatedUnits in Utils.GetRelatedUnits(Unit))
@@ -373,6 +388,10 @@ public sealed class ClassGenerator
                 $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for inequality (no tolerance used)</summary>";
             yield return
                 $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnits.Name} right) => !(left == right);";
+            yield return
+                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for Equality (Constants Tolerance used)</summary>";
+            yield return
+                $"\tpublic bool Equals({relatedUnits.Name} unit) => (this - unit).Value - cunit.Constants.Tolerance <= 0;";
             yield return string.Empty;
         }
 
@@ -381,9 +400,6 @@ public sealed class ClassGenerator
         yield return $"\tpublic override int GetHashCode() => _preComputedHashCode;";
         yield return string.Empty;
         yield return $"\tpublic override bool Equals(object? obj) => obj is {Unit.Name} unit && Equals(unit);";
-        yield return string.Empty;
-        yield return
-            $"\tpublic bool Equals({Unit.Name} unit) => (this.Value - unit.Value) - cunit.Constants.Tolerance <= 0;";
         yield return string.Empty;
         yield return "\tprivate readonly string _preComputedToString = \"Unset\";";
         yield return $"\tpublic override string ToString() => _preComputedToString;";

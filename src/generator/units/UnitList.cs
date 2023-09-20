@@ -11,7 +11,7 @@ public static class UnitList
                                         UnitDescription? BaseUnit = null,
                                         string[]? Dimensions = null,
                                         string? Formula = "",
-                                        string Calculation = "value * 1");
+                                        string Calculation = "value.Value * 1");
 
     private static Dictionary<string, UnitDescription> units;
 
@@ -117,8 +117,8 @@ public static class UnitList
         
         var kelvin = new UnitDescription("Kelvin", "K");
         yield return kelvin;
-        yield return new UnitDescription("Celcius", "C", kelvin, Calculation: "value - 273.15");
-        yield return new UnitDescription("Farenheight", "F", kelvin, Calculation: "(1.8 * (value - 273.15)) + 32");
+        yield return new UnitDescription("Celcius", "C", kelvin, Calculation: "<v> - 273.15");
+        yield return new UnitDescription("Farenheight", "F", kelvin, Calculation: "(1.8 * (<v> - 273.15)) + 32");
         
         #endregion
         
