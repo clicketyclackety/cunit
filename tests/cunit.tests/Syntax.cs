@@ -47,7 +47,7 @@ public class Tests
             m < cm ||
             m == cm ||
             m != cm ||
-            cm == mm ||
+            cm == m ||
             cm == cm ||
             cm >= m)
         {
