@@ -97,7 +97,7 @@ public sealed class ClassGenerator
             foreach(var pair in Generics.GetUnitTypeParameterPairs(Unit))
             {
                 yield return "\t/// <summary>The value of this unit</summary>";
-                yield return $"\tprivate readonly {pair.Dim} {pair.Param} = 1;";
+                yield return $"\tpublic readonly {pair.Dim} {pair.Param} = 1;";
             }
         }
         else
