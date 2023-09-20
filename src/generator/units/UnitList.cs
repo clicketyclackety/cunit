@@ -11,7 +11,7 @@ public static class UnitList
                                         UnitDescription? BaseUnit = null,
                                         string[]? Dimensions = null,
                                         string? Formula = "",
-                                        string Calculation = "value.Value * 1");
+                                        string Calculation = "<vV> * 1");
 
     private static Dictionary<string, UnitDescription> units;
 
@@ -50,21 +50,23 @@ public static class UnitList
 
         var rad = new UnitDescription("Radian", "R", Calculation: "180/cunit.Constants.PI");
         yield return rad;
-        yield return new UnitDescription("Degree", "°", rad, Calculation: "<v> * (180/cunit.Constants.PI)");
+        yield return new UnitDescription("Degree", "°", rad, Calculation: "<vV> * (180/cunit.Constants.PI)");
         
         #endregion
         
         #region DISTANCE/AREA/VOLUME
         
         var meter = new UnitDescription("Meter", "m");
-        var centimeter = new UnitDescription("Centimeter", "cm", meter, Calculation:"<v> / 100");
-        var millimeter = new UnitDescription("Millimeter", "mm", meter, Calculation:"<v> / 1000");
-        var foot = new UnitDescription("Foot", "ft", meter, Calculation:"<v> *  1 / 39.37");
-        var inch = new UnitDescription("Inch", "in", meter, Calculation:"<v> *  0.00254");
+        var kilometer = new UnitDescription("Kilometer", "km", meter, Calculation: "<vV> * 1000");
+        var centimeter = new UnitDescription("Centimeter", "cm", meter, Calculation:"<vV> / 100");
+        var millimeter = new UnitDescription("Millimeter", "mm", meter, Calculation:"<vV> / 1000");
+        var foot = new UnitDescription("Foot", "ft", meter, Calculation:"<vV> *  0.3048");
+        var inch = new UnitDescription("Inch", "in", meter, Calculation:"<vV> *  0.0254");
         
         UnitDescription[] distanceUnits = new []
         {
             meter,
+            kilometer,
             centimeter,
             millimeter,
             inch,
@@ -77,8 +79,8 @@ public static class UnitList
         {
             // TODO : Fix Ratios, they require powers & base unit ratios
             // TODO : Ratio requires more than just a double! 
-            var squared = new UnitDescription($"{unit.Name}Squared", "m²", meterSquared, new [] {unit.Name, unit.Name}, Formula:"<0> * <1>"); 
-            var cubed = new UnitDescription($"{unit.Name}Cubed", "m³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, Formula:"<0> * <1> * <2>");
+            var squared = new UnitDescription($"{unit.Name}Squared", "m²", meterSquared, new [] {unit.Name, unit.Name}, Formula:"<0> * <1>", Calculation: $"<vx>, <vy>");
+            var cubed = new UnitDescription($"{unit.Name}Cubed", "m³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, Formula:"<0> * <1> * <2>", Calculation: $"<vx>, <vy>, <vz>");
             
             if (unit.Name.Equals(meter.Name, StringComparison.InvariantCultureIgnoreCase))
             {
@@ -99,10 +101,10 @@ public static class UnitList
         var second = new UnitDescription("Second", "s");
         yield return second;
         
-        yield return new UnitDescription("MilliSecond", "s", second, Calculation: "<v> * 1000");
-        yield return new UnitDescription("Hour", "H", second, Calculation: "<v> / 60");
-        yield return new UnitDescription("Day", "H", second, Calculation: "<v> / 60 * 24");
-        yield return new UnitDescription("Week", "H", second, Calculation: "<v> / 60 * 24 * 7");
+        yield return new UnitDescription("MilliSecond", "s", second, Calculation: "<vV> * 1000");
+        yield return new UnitDescription("Hour", "H", second, Calculation: "<vV> / 60");
+        yield return new UnitDescription("Day", "H", second, Calculation: "<vV> / 60 * 24");
+        yield return new UnitDescription("Week", "H", second, Calculation: "<vV> / 60 * 24 * 7");
         
         #endregion
         
@@ -117,8 +119,8 @@ public static class UnitList
         
         var kelvin = new UnitDescription("Kelvin", "K");
         yield return kelvin;
-        yield return new UnitDescription("Celcius", "C", kelvin, Calculation: "<v> - 273.15");
-        yield return new UnitDescription("Farenheight", "F", kelvin, Calculation: "(1.8 * (<v> - 273.15)) + 32");
+        yield return new UnitDescription("Celcius", "C", kelvin, Calculation: "<vV> + 273.15");
+        yield return new UnitDescription("Farenheight", "F", kelvin, Calculation: "((<vV> - 32) / 1.79999999) + 273.15");
         
         #endregion
         
@@ -126,11 +128,11 @@ public static class UnitList
         
         var kilo = new UnitDescription("Kilogram", "Kg");
         yield return kilo;
-        yield return new UnitDescription("Gram", "g", kilo, Calculation: "<v> * 0.001");
-        yield return new UnitDescription("Tonne", "T", kilo, Calculation: "<v> * 1000");
+        yield return new UnitDescription("Gram", "g", kilo, Calculation: "<vV> * 0.001");
+        yield return new UnitDescription("Tonne", "T", kilo, Calculation: "<vV> * 1000");
 
-        yield return new UnitDescription("Ounce", "oz", kilo, Calculation: "<v> * 0.02834952");
-        yield return new UnitDescription("Pound", "lb", kilo, Calculation: "<v> * 0.02834952 / 16");
+        yield return new UnitDescription("Ounce", "oz", kilo, Calculation: "<vV> * 0.02834952");
+        yield return new UnitDescription("Pound", "lb", kilo, Calculation: "<vV> * 0.02834952 / 16");
         
         #endregion
         
@@ -145,11 +147,11 @@ public static class UnitList
         var @byte = new UnitDescription("Byte", "B");
         yield return @byte;
         
-        yield return new UnitDescription("Bit", "b", @byte, Calculation:"<v> / 8");
+        yield return new UnitDescription("Bit", "b", @byte, Calculation:"<vV> / 8");
         
-        yield return new UnitDescription("KiloByte", "B", @byte, Calculation:"<v> * 1024");
-        yield return new UnitDescription("MegaByte", "MB", @byte, Calculation:"<v> * 1024 * 1024");
-        yield return new UnitDescription("GigaByte", "GB", @byte, Calculation:"<v> * 1024 * 1024 * 1024");
+        yield return new UnitDescription("KiloByte", "B", @byte, Calculation:"<vV> * 1024");
+        yield return new UnitDescription("MegaByte", "MB", @byte, Calculation:"<vV> * 1024 * 1024");
+        yield return new UnitDescription("GigaByte", "GB", @byte, Calculation:"<vV> * 1024 * 1024 * 1024");
         
         #endregion
     }

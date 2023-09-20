@@ -25,8 +25,7 @@ public static class Calculations
 
     public static string GetCalcuation(UnitList.UnitDescription left, UnitList.UnitDescription right)
     {
-        return
-            $"{left.Calculation.Replace("<v>", "value.Value")} / {right.Calculation.Replace("<v>", "value.Value")}";
+        return $"{FormatCalculation(left.Calculation)} / {FormatCalculation(right.Calculation)}";
     }
     
     public static string CombineCalcuationAndDimensions(UnitList.UnitDescription unit)
@@ -51,5 +50,33 @@ public static class Calculations
         var matches = reg.Matches(formula);
         return matches.Select(m => int.Parse(m.Groups[1].Value)).ToArray();
     }
-    
+
+    public static string InvertCalculation(string calculation)
+    {
+        return calculation
+            .Replace("-", "NEG")
+            .Replace("/", "DIV")
+            .Replace("*", "/")
+            .Replace("DIV", "*")
+            .Replace("+", "-")
+            .Replace("NEG", "+");
+    }
+
+    public static string FormatCalculation(string calcuation)
+    {
+        var calc = calcuation.Replace("<v>", "value")
+            .Replace("<vV>", "value.Value");
+
+        foreach (var generic in Generics.Names)
+        {
+            var g = generic.ToLowerInvariant();
+            
+            calc = calc.Replace($"<v{g}V>", $"value.{generic}Value.Value")
+                .Replace($"<v{g}>", $"value.{generic}Value");
+                // .Replace($"<v{g}C>", $"value.{generic}Value"); // TODO : Add casting support
+        }
+
+        return calc;
+    }
+
 }
