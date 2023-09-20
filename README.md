@@ -31,12 +31,12 @@ e.g.
 ```c#
 Kilometer distance = 1000;
 Hour time = 60;
-KilometersPerHour = time * distance;
-Console.WriteLine(time.XValue);
-Console.WriteLine(time.YValue);
+KilometersPerHour kmph = time * distance;
+Console.WriteLine(kmph.XValue);
+Console.WriteLine(kmph.YValue);
 ```
 
-* If you generate a Cubed unit from a single value, 2 of those dimensions will be 1.
+\* If you generate a Cubed unit from a single value, 2 of those dimensions will be 1.
 
 
 # SI
