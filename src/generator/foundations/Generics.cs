@@ -11,6 +11,8 @@ public class Generics
 
     private static string GetParam(string genericName) => $"{genericName}Value";
     
+    public static string GetParam(int index) => $"{Names[index]}Value";
+    
     public static string[] GetUnitNames(UnitList.UnitDescription unit)
         => unit.Dimensions is null ? Array.Empty<string>() : Names[..unit.Dimensions.Length];
 

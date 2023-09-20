@@ -240,13 +240,8 @@ public sealed class ClassGenerator
         int dimensionCount = Unit.Dimensions?.Length ?? 1;
 
         yield return string.Empty;
-            
-        IEnumerable<(string left, string right)> unitPairs = Utils.GetUnitPairs(Unit);
-        foreach(var unitPair in unitPairs)
-        {
-            yield return $"\tpublic static {unitPair.left} operator *({Unit.Name} left, {unitPair.right} right)" +
-                         $" => left.Value * right.Value;";
-        }
+        
+        // * operators
 
         yield return string.Empty;
         
@@ -274,6 +269,36 @@ public sealed class ClassGenerator
                              $" => left.Value {@operator} ({Unit.Name})right;";
             }
         }*/
+        
+        
+        var unitPairs = Utils.GetBuildPieces(Unit);
+        foreach (var unitPair in unitPairs)
+        {
+            if (unitPair.Count < 2)
+                continue;
+            
+            yield return
+                $"\tpublic static {unitPair[0].Name} operator /({Unit.Name} left, {unitPair[1].Name} right)" +
+                $" => left.Value / right.Value;";
+
+            if (unitPair[0] == unitPair[1])
+                continue;
+            
+            yield return
+                $"\tpublic static {unitPair[1].Name} operator /({Unit.Name} left, {unitPair[0].Name} right)" +
+                $" => left.Value / right.Value;";
+        }
+        
+        var setPairs = Utils.GetBuildingSets(Unit);
+        foreach (var setPair in setPairs)
+        {
+            if (setPair.Count < 2)
+                continue;
+
+            yield return
+                $"\tpublic static {setPair[0].Name} operator *({setPair[1].Name} left, {setPair[2].Name} right)" +
+                $" => left.Value / right.Value;";
+        }
 
         yield return string.Empty;
         yield return "\t#endregion";
@@ -319,72 +344,58 @@ public sealed class ClassGenerator
         yield return "\t#endregion";
         yield return string.Empty;
     }
-    
+
     private IEnumerable<string> GenerateEquality()
     {
 
         yield return "\t#region Equality";
         yield return string.Empty;
-        
+
         // Equality and Hashing
-        yield return $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for equality (no tolerance used)</summary>";
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for equality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator ==({Unit.Name} left, {Unit.Name} right)" +
-                    $" => left.Equals(right);";
-        
-        yield return $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
+                     $" => left.Equals(right);";
+
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator !=({Unit.Name} left, {Unit.Name} right) => !(left == right);";
         yield return string.Empty;
-        
+
         foreach (var relatedUnits in Utils.GetRelatedUnits(Unit))
         {
-            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for equality (no tolerance used)</summary>";
+            yield return
+                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for equality (no tolerance used)</summary>";
             yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnits.Name} right)" +
                          $" => left.Equals(right);";
-        
-            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for inequality (no tolerance used)</summary>";
-            yield return $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnits.Name} right) => !(left == right);";
+
+            yield return
+                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for inequality (no tolerance used)</summary>";
+            yield return
+                $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnits.Name} right) => !(left == right);";
             yield return string.Empty;
         }
-        
+
         yield return string.Empty;
         yield return $"\tprivate readonly int _preComputedHashCode = -1;";
         yield return $"\tpublic override int GetHashCode() => _preComputedHashCode;";
         yield return string.Empty;
         yield return $"\tpublic override bool Equals(object? obj) => obj is {Unit.Name} unit && Equals(unit);";
         yield return string.Empty;
-        yield return $"\tpublic bool Equals({Unit.Name} unit) => (this.Value - unit.Value) - cunit.Constants.Tolerance <= 0;";
+        yield return
+            $"\tpublic bool Equals({Unit.Name} unit) => (this.Value - unit.Value) - cunit.Constants.Tolerance <= 0;";
         yield return string.Empty;
-        yield return "\tprivate readonly string _preComputedToString = \"Unset\";"; 
+        yield return "\tprivate readonly string _preComputedToString = \"Unset\";";
         yield return $"\tpublic override string ToString() => _preComputedToString;";
 
         yield return string.Empty;
         yield return "\t#endregion";
-        
+
         yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
     }
-    
-    private IEnumerable<UnitList.UnitDescription> GetUnitsThatContainThisUnitInAnEquation(string @operator = null)
-    {
-        foreach (var unit in UnitList.GetUnits())
-        {
-            if (string.IsNullOrEmpty(unit.Calculation))
-                continue;
 
-            if (unit == Unit)
-                continue;
-
-            if (unit.BaseUnit != Unit || unit.BaseUnit != Unit.BaseUnit)
-                continue;
-
-            if (!string.IsNullOrEmpty(@operator) && !unit.Calculation.Contains(@operator))
-                continue;
-            
-            yield return unit;
-        }
-    }
-    
     private IEnumerable<string> GenerateClassFooter()
     {
         yield return "}";
@@ -396,11 +407,11 @@ public sealed class ClassGenerator
     private string GetCalculation()
     {
         string formulae = Unit.Formula?.ToLowerInvariant();
-        foreach (var genericName in genericNames)
+        for(int i = 0; i < genericNames.Length; i++)
         {
+            var genericName = genericNames[i];
             string parameterName = $"{genericName.ToUpperInvariant()}Value";
-            string varName = genericName.ToLowerInvariant();
-            formulae = formulae.Replace($"{varName}{varName}", parameterName);
+            formulae = formulae.Replace($"<{i}>", parameterName);
         }
 
         return formulae.ToLowerInvariant();
