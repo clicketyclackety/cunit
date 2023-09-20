@@ -118,6 +118,25 @@ public sealed class ClassGenerator
         if (Unit.Dimensions?.Length > 1)
         {
             string[] paramNames = Generics.GetUnitParameterNames(Unit);
+            
+            string tuples = string.Join(", ", Unit.Dimensions);
+            List<(string, string)> tupleValues = new();
+            for (int i = 0; i < Unit.Dimensions.Length; i++)
+            {
+                tupleValues.Add(($"{Unit.Dimensions[i]}", $"{Generics.Names[i].ToLowerInvariant()}"));
+            }
+            var tupleParameters = string.Join(", ", tupleValues.Select(tv => $"{tv.Item1} {tv.Item2}"));
+            var tupleNames = string.Join(", ", tupleValues.Select(tv => $"tuple.{tv.Item2}.Value"));
+            
+            // TUPLE CONSTRUCTOR
+            yield return $"\tpublic {Unit.Name}(({tupleParameters}) tuple)";
+            yield return $"\t\t: this({tupleNames})";
+            yield return "\t{ }";
+            yield return string.Empty;
+            
+            yield return $"\t/// <summary>Creates a new instance of a {Unit.Name}</summary>";
+            
+            // SECOND CONSTRUCTOR
             List<string> paramPair = new List<string>();
             for (int i = 0; i < Unit.Dimensions.Length; i++)
             {
@@ -185,21 +204,21 @@ public sealed class ClassGenerator
         if (Unit.BaseUnit is not null)
         {
             yield return $"\t/// <summary>Converts {Unit.BaseUnit.Name} into this Unit.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new ({Unit.Calculation.Replace("<v>", "value.Value")});";
+            yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new (({Calculations.FormatCalculation(Unit.Calculation)}));";
             yield return string.Empty;
             
-            yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>"; // TODO : INVERT CALCULATIONS? HOW?
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new ({Unit.Calculation.Replace("<v>", "value.Value")});";
+            yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>";
+            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new (({Calculations.InvertCalculation(Calculations.FormatCalculation(Unit.Calculation))}));";
             yield return string.Empty;
 
-            foreach (var baseUnit in Utils.GetRelatedUnits(Unit))
+            foreach (var r in Utils.GetRelatedUnits(Unit))
             {
-                if (baseUnit == Unit.BaseUnit)
+                if (r == Unit.BaseUnit)
                     continue;
                 
-                yield return $"\t/// <summary>Converts {Unit.Name} into {baseUnit.Name}.</summary>";
+                yield return $"\t/// <summary>Converts {Unit.Name} into {r.Name}.</summary>";
                 yield return
-                    $"\tpublic static implicit operator {Unit.Name}({baseUnit.Name} value) => new {Unit.Name}({Calculations.GetCalcuation(Unit, baseUnit)});";
+                    $"\tpublic static implicit operator {Unit.Name}({r.Name} value) => value.ToSI();";
                 yield return string.Empty;
             }
         }
