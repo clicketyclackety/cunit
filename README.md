@@ -19,6 +19,7 @@ Kelvin k = (c - f) * 2;
 ```
 We quickly see that cunit is designed to work like and alongside doubles. There are no methods to cast one measurement into another, it happens seamlessly. The only thing cunit **does not** cast to is a double. You must explicitly call `myUnit.Value` as an example. I believe casting these units to doubles implicitly will cause all sorts of weird issues in calculations, and I'd rather avoid that.
 
+For more syntax, see this test class [Syntax](https://github.com/clicketyclackety/cunit/blob/main/tests/cunit.tests/Syntax.cs).
 
 # Performance
 All of cunits units are readonly structs that are entirely precomputed. That is to say, once your unit is created, GetHashCode() has no overhead, nor does ToString(), the Value or any operation that is internal to the structure. (Equals and == of course perform a calculation). Every operation you perform with cunit takes place in the stack.
