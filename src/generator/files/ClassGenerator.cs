@@ -425,7 +425,16 @@ public sealed class ClassGenerator
         yield return string.Empty;
         yield return $"\tpublic override int GetHashCode() => {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
         yield return string.Empty;
-        yield return $"\tpublic override bool Equals(object? obj) => obj is {Unit.Name} unit && Equals(unit);";
+
+        yield return $"\tpublic override bool Equals(object? obj) => obj switch {{";
+        foreach (var unit in Utils.GetRelatedUnits(Unit))
+        {
+            var lower = unit.Name.ToLowerInvariant();
+            yield return $"\t\t\t{unit.Name} @{lower} => Equals(@{lower}),";
+        }
+        yield return $"\t\t\t{Numerics.NumberType} number => Equals(number),";
+        yield return $"\t\t\t_ => false";
+        yield return "\t};";
         yield return string.Empty;
         yield return $"\tpublic override string ToString() => ToString(\"G\");";
 
