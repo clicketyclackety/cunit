@@ -154,7 +154,6 @@ public sealed class ClassGenerator
             }
             
             yield return string.Empty;
-            yield return $"\t\t_preComputedValue = {GetCalculation()};";
         }
         else
         {
@@ -164,8 +163,6 @@ public sealed class ClassGenerator
             yield return string.Empty;
         }
         
-        yield return $"\t\t_preComputedHashCode = nameof({Unit.Name}).GetHashCode() ^ Value.GetHashCode();";
-        yield return $"\t\t_preComputedToString = ToString(\"G\");";
         yield return "\t}";
         yield return string.Empty;
     }
@@ -421,18 +418,16 @@ public sealed class ClassGenerator
             yield return
                 $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for Equality (Constants Tolerance used)</summary>";
             yield return
-                $"\tpublic bool Equals({relatedUnits.Name} unit) => (this - unit).Value - cunit.Constants.Tolerance <= 0;";
+                $"\tpublic bool Equals({relatedUnits.Name} unit) => Math.Abs((this - unit).Value) - cunit.Constants.Tolerance <= 0;";
             yield return string.Empty;
         }
 
         yield return string.Empty;
-        yield return $"\tprivate readonly int _preComputedHashCode = -1;";
-        yield return $"\tpublic override int GetHashCode() => _preComputedHashCode;";
+        yield return $"\tpublic override int GetHashCode() => {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
         yield return string.Empty;
         yield return $"\tpublic override bool Equals(object? obj) => obj is {Unit.Name} unit && Equals(unit);";
         yield return string.Empty;
-        yield return "\tprivate readonly string _preComputedToString = \"Unset\";";
-        yield return $"\tpublic override string ToString() => _preComputedToString;";
+        yield return $"\tpublic override string ToString() => ToString(\"G\");";
 
         yield return "\tpublic string ToString(string? format) => ToString(format, CultureInfo.CurrentCulture);";
         

@@ -39,6 +39,19 @@ public class Tests
     }
 
     [Test]
+    public void TestTupleCasting()
+    {
+        MeterCubed m3 = 2000;
+        (Meter, Meter, Meter) mmm = m3;
+        MeterCubed m4 = new(mmm);
+
+        FootCubed fc = m4;
+        // TODO : How do we sort that the divider may not equal that dimension?
+        // TODO : Where do those dimensions and those values go?
+        FootSquared fs = m4 / new Meter(40);
+    }
+    
+    [Test]
     public void TestGreatherThan()
     {
         Meter m = 100;
