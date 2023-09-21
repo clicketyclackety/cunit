@@ -29,4 +29,27 @@ public class Multiply_Benchmark : CUnit_Benchmarks
         double m3 = m1 * m2;
     }
     
+    
+
+    [Benchmark]
+    public void Cunit_MultiplyMeterByNumber()
+    {
+        Meter m1 = 2;
+        var m3 = m1 * 2;
+    }
+
+    [Benchmark]
+    public void UnitsNet_MultiplyMetrByNumber()
+    {
+        var m1 = UnitsNet.Length.FromMeters(2);
+        UnitsNet.Length m3 = m1 * 2;
+    }
+
+    [Benchmark]
+    public void Double_MultiplyMeterByNumber()
+    {
+        double m1 = 2;
+        double m3 = m1 * 2;
+    }
+    
 }
