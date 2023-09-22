@@ -9,9 +9,16 @@ public class Tests
         Meter m = 100;
         Centimeter cm = m;
         Millimeter mm = m;
+        Kilometer km = m;
         
         Assert.That(m, Is.EqualTo(mm));
         Assert.That(m, Is.EqualTo(cm));
+        Assert.That(m, Is.EqualTo(km));
+        
+        var meq = m.Equals(m);
+        var cmqeq = cm.Equals(cm);
+        var mmeq = mm.Equals(mm);
+        var kmeq = km.Equals(m);
     }
 
     [Test]

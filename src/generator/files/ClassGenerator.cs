@@ -147,13 +147,15 @@ public sealed class ClassGenerator
             }
             yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
             yield return "\t{";
-            
+
+            List<string> computedValues = new(Unit.Dimensions.Length);
             foreach(var paramName in Generics.GetUnitParameterNames(Unit))
             {
                 yield return $"\t\t{paramName} = {paramName.ToLowerInvariant()};";
+                computedValues.Add(paramName.ToLowerInvariant());
             }
-            
-            yield return string.Empty;
+
+            yield return $"\t\t_preComputedValue = {string.Join(" * ", computedValues)};";
         }
         else
         {
@@ -254,14 +256,33 @@ public sealed class ClassGenerator
                          $"=> left.Value {@operator} right;";
             yield return $"\tpublic static {Unit.Name} operator {@operator}({Numerics.NumberType} left, {Unit.Name} right)" +
                          $"=> left {@operator} right.Value;";
-            
-            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Unit.Name} right)" +
-                         $"=> left.Value {@operator} right.Value;";
 
-            foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
-            {   
-                yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)" +
-                             $" => left.Value {@operator} ({Unit.Name})right;";
+            foreach (var relatedUnit in new []{ Unit }.Union(Utils.GetRelatedUnits(Unit)))
+            {
+                string declarationLine =
+                    $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {relatedUnit.Name} right)";
+                if (Unit.Dimensions?.Length > 1)
+                {
+                    yield return declarationLine;
+                    yield return "\t{";
+                    string operations = string.Empty;
+                    List<string> genericNames = new(Unit.Dimensions.Length);
+                    for (int i = 0; i < Unit.Dimensions.Length; i++)
+                    {
+                        var g = Generics.Names[i].ToLowerInvariant();
+                        genericNames.Add($"{g}.Value");
+                        var gv = Generics.GetParam(i);
+                        yield return $"\t\tvar {g} = left.{gv} {@operator} right.{gv};";
+                    }
+                    
+                    yield return $"\t\treturn new ({string.Join(", ", genericNames)});";
+                    yield return "\t}";
+                }
+                else
+                {
+                    declarationLine += $" => left.Value {@operator} ({Unit.Name})right;";
+                    yield return declarationLine;
+                }
             }
         }
     }
@@ -418,7 +439,7 @@ public sealed class ClassGenerator
             yield return
                 $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for Equality (Constants Tolerance used)</summary>";
             yield return
-                $"\tpublic bool Equals({relatedUnits.Name} unit) => Math.Abs((this - unit).Value) - cunit.Constants.Tolerance <= 0;";
+                $"\tpublic bool Equals({relatedUnits.Name} unit) => Math.Abs((unit - this).Value) - cunit.Constants.Tolerance <= 0;";
             yield return string.Empty;
         }
 
