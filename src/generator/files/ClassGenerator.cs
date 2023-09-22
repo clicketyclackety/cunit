@@ -84,12 +84,15 @@ public sealed class ClassGenerator
     
     private IEnumerable<string> GenerateClassProperties()
     {
+        yield return $"\tprivate readonly int _preComputedHash = -1;";
+        
         // If we have multiple dimensions, this should be more complex
         if (Unit.Dimensions?.Length > 1)
         {
             var names = Generics.GetUnitParameterNames(Unit);
 
             yield return $"\tprivate readonly {Numerics.NumberType} _preComputedValue = 1;";
+            
             yield return string.Empty;
             
             yield return "\t/// <summary>The numeric value of this unit</summary>";
@@ -107,6 +110,7 @@ public sealed class ClassGenerator
             yield return $"\t/// <summary>The {Numerics.NumberType} value of this unit</summary>";
             yield return $"\tpublic readonly {Numerics.NumberType} Value = 1;";
         }
+        
         yield return string.Empty;
     }
 
@@ -156,13 +160,14 @@ public sealed class ClassGenerator
             }
 
             yield return $"\t\t_preComputedValue = {string.Join(" * ", computedValues)};";
+            yield return $"\t\t_preComputedHash = {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
         }
         else
         {
             yield return $"\tpublic {Unit.Name}({Numerics.NumberType} value = 1)";
             yield return "\t{";
             yield return "\t\tValue = value;";
-            yield return string.Empty;
+            yield return $"\t\t_preComputedHash = {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
         }
         
         yield return "\t}";
@@ -444,7 +449,7 @@ public sealed class ClassGenerator
         }
 
         yield return string.Empty;
-        yield return $"\tpublic override int GetHashCode() => {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
+        yield return $"\tpublic override int GetHashCode() => _preComputedHash;";
         yield return string.Empty;
 
         yield return $"\tpublic override bool Equals(object? obj) => obj switch {{";
