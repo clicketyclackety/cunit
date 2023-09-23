@@ -4,6 +4,8 @@ using generators.foundations;
 
 namespace generators.files;
 
+
+// Good Reading : https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview
 public sealed class ClassGenerator
 {
     private readonly List<string> Lines;
@@ -72,18 +74,28 @@ public sealed class ClassGenerator
         yield return $"/// Represents a {Unit.Name} Unit.";
         yield return "/// </summary>";
         yield return $"[JsonConverter(typeof({Unit.Name}JsonConverter))]";
-        var classDeclaration = $"public readonly struct {Unit.Name} : IFormattable, IEquatable<{Numerics.NumberType}>";
-
-        var iequatables = new List<string>();
-        var relatedUnits = Utils.GetRelatedUnits(Unit);
-        if (relatedUnits is not null && relatedUnits.Count() > 0)
-            classDeclaration += ", ";
-        foreach (var relatedUnit in relatedUnits)
+        var interfaces = new List<string>()
         {
-            iequatables.Add($"IEquatable<{relatedUnit.Name}>");
+            $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>"
+        };
+
+        if (Unit.Dimensions is not null)
+        {
+            interfaces.Add($"IUnit<{string.Join(", ", Unit.Dimensions)}>");
         }
 
-        classDeclaration += string.Join(", ", iequatables);
+        interfaces.Add("IFormattable");
+        interfaces.Add($"IEquatable<{Numerics.NumberType}>");
+        var classDeclaration = $"public readonly struct {Unit.Name} :\n\t\t\t\t";
+
+        
+        var relatedUnits = Utils.GetRelatedUnits(Unit).Union(new [] {Unit});
+        foreach (var relatedUnit in relatedUnits)
+        {
+            interfaces.Add($"IEquatable<{relatedUnit.Name}>");
+        }
+
+        classDeclaration += string.Join(",\n\t\t\t\t", interfaces);
         yield return classDeclaration;
         
         yield return "{";
@@ -110,13 +122,13 @@ public sealed class ClassGenerator
             foreach(var pair in Generics.GetUnitTypeParameterPairs(Unit))
             {
                 yield return "\t/// <summary>The value of this unit</summary>";
-                yield return $"\tpublic readonly {pair.Dim} {pair.Param} = 1;";
+                yield return $"\tpublic {pair.Dim} {pair.Param} {{ get; }} = 1;";
             }
         }
         else
         {
             yield return $"\t/// <summary>The {Numerics.NumberType} value of this unit</summary>";
-            yield return $"\tpublic readonly {Numerics.NumberType} Value = 1;";
+            yield return $"\tpublic {Numerics.NumberType} Value {{ get; }} = 1;";
         }
         
         yield return string.Empty;
@@ -184,17 +196,13 @@ public sealed class ClassGenerator
 
     private IEnumerable<string> GenerateClassMethods()
     {
+        var baseUnit = Unit.BaseUnit ?? Unit;
+        
         yield return "\t#region Methods";
         yield return string.Empty;
-
-        if (Unit.BaseUnit is not null)
-        {
-            // TODO : Make this an Interface!
-            yield return "\t/// <summary>Converts a unit to SI</summary>";
-            yield return $"\tpublic {Unit.BaseUnit.Name} ToSI() => ({Unit.BaseUnit.Name})this;";
-            yield return string.Empty;
-        }
-
+        yield return "\t/// <summary>Converts a unit to SI</summary>";
+        yield return $"\tpublic {baseUnit.Name} ToSI() => ({baseUnit.Name})this;";
+        yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
     }
