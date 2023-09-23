@@ -9,7 +9,9 @@
 
     <ItemGroup>
       <PackageReference Include="BenchmarkDotNet" Version="0.13.8" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
       <PackageReference Include="UnitsNet" Version="5.33.0" />
+      <PackageReference Include="UnitsNet.Serialization.JsonNet" Version="5.28.0" />
     </ItemGroup>
 
     <ItemGroup>

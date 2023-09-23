@@ -14,6 +14,7 @@ internal sealed class Writer
             ClassGenerator generator = new ClassGenerator(unit);
             generator.Generate();
             File.WriteAllLines(generator.GetFilePath(), generator.GetLines());
+            File.WriteAllLines(generator.GetFilePath().Replace(".cs", "Converter.cs"), generator.GetJsonLines());
         }
         
     }

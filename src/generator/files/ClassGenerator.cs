@@ -7,6 +7,7 @@ namespace generators.files;
 public sealed class ClassGenerator
 {
     private readonly List<string> Lines;
+    private readonly List<string> JsonLines; 
     private UnitList.UnitDescription Unit;
 
     private static string[] genericNames => Generics.Names;
@@ -14,6 +15,7 @@ public sealed class ClassGenerator
     internal ClassGenerator(UnitList.UnitDescription unitDescription)
     {
         Lines = new();
+        JsonLines = new();
         Unit = unitDescription;
     }
 
@@ -33,6 +35,7 @@ public sealed class ClassGenerator
     public void Generate()
     {
         Lines.Clear();
+        JsonLines.Clear();
         
         Lines.AddRange(GenerateNamespace());
         Lines.AddRange(GenerateClassHeader());
@@ -47,15 +50,19 @@ public sealed class ClassGenerator
         Lines.AddRange(GenerateGreaterLessThansOperators());
         Lines.AddRange(GenerateEquality());
         Lines.AddRange(GenerateClassFooter());
-        
         Lines.Add(string.Empty);
+        
+        JsonLines.AddRange(GenerateSerializer());
     }
-    
+
     private IEnumerable<string> GenerateNamespace()
     {
-        yield return $"using System.Globalization;";
+        yield return "using System.Globalization;";
+        yield return "using System.Text.Json.Serialization;";
         yield return string.Empty;
-        yield return $"namespace cunit;";
+        yield return "using cunit.Json;";
+        yield return string.Empty;
+        yield return "namespace cunit;";
         yield return string.Empty;
     }
     
@@ -64,6 +71,7 @@ public sealed class ClassGenerator
         yield return "/// <summary>";
         yield return $"/// Represents a {Unit.Name} Unit.";
         yield return "/// </summary>";
+        yield return $"[JsonConverter(typeof({Unit.Name}JsonConverter))]";
         var classDeclaration = $"public readonly struct {Unit.Name} : IFormattable, IEquatable<{Numerics.NumberType}>";
 
         var iequatables = new List<string>();
@@ -160,7 +168,7 @@ public sealed class ClassGenerator
             }
 
             yield return $"\t\t_preComputedValue = {string.Join(" * ", computedValues)};";
-            yield return $"\t\t_preComputedHash = {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
+            yield return $"\t\t_preComputedHash = {(Unit.BaseUnit ?? Unit).Name.GetHashCode()} ^ Value.GetHashCode();";
         }
         else
         {
@@ -412,7 +420,7 @@ public sealed class ClassGenerator
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for Equality (Constants Tolerance used)</summary>";
         yield return
-            $"\tpublic bool Equals({Numerics.NumberType} unit) => (this.Value - unit) - cunit.Constants.Tolerance <= 0;";
+            $"\tpublic bool Equals({Numerics.NumberType} unit) => Math.Abs((this - unit).Value) == 0;";
         yield return string.Empty;
         
         yield return
@@ -426,25 +434,26 @@ public sealed class ClassGenerator
         
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
+        yield return $"\tpublic bool Equals({Unit.Name} unit) => Math.Abs((this - unit).Value) == 0;";
+        yield return $"\t/// <summary>Compares {Unit.Name} with {Unit.Name} for Equality given a tolerance</summary>";
         yield return
-            $"\tpublic bool Equals({Unit.Name} unit) => (this - unit).Value - cunit.Constants.Tolerance <= 0;";
+            $"\tpublic bool EpsilonEquals({Unit.Name} unit, double tolerance) => Math.Abs((this - unit).Value) < cunit.Constants.Tolerance;"; 
+        
         yield return string.Empty;
 
-        foreach (var relatedUnits in Utils.GetRelatedUnits(Unit))
+        foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
         {
             yield return
-                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for equality (no tolerance used)</summary>";
-            yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnits.Name} right)" +
+                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for equality (no tolerance used)</summary>";
+            yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnit.Name} right)" +
                          $" => left.Equals(right);";
 
-            yield return
-                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for inequality (no tolerance used)</summary>";
-            yield return
-                $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnits.Name} right) => !(left == right);";
-            yield return
-                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnits.Name} for Equality (Constants Tolerance used)</summary>";
-            yield return
-                $"\tpublic bool Equals({relatedUnits.Name} unit) => Math.Abs((unit - this).Value) - cunit.Constants.Tolerance <= 0;";
+            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for inequality (no tolerance used)</summary>";
+            yield return $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnit.Name} right) => !(left == right);";
+            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for Equality (Constants Tolerance used)</summary>";
+            yield return $"\tpublic bool Equals({relatedUnit.Name} unit) => Math.Abs((this - unit).Value) == 0;";
+            yield return $"\t/// <summary>Compares {Unit.Name} with {relatedUnit.Name} for Equality given a tolerance</summary>";
+            yield return $"\tpublic bool EpsilonEquals({relatedUnit.Name} unit, double tolerance) => Math.Abs((this - unit).Value) < cunit.Constants.Tolerance;";
             yield return string.Empty;
         }
 
@@ -452,8 +461,9 @@ public sealed class ClassGenerator
         yield return $"\tpublic override int GetHashCode() => _preComputedHash;";
         yield return string.Empty;
 
+        // TODO: Create EpsilonEquals as well!
         yield return $"\tpublic override bool Equals(object? obj) => obj switch {{";
-        foreach (var unit in Utils.GetRelatedUnits(Unit))
+        foreach (var unit in new [] {Unit}.Union(Utils.GetRelatedUnits(Unit)))
         {
             var lower = unit.Name.ToLowerInvariant();
             yield return $"\t\t\t{unit.Name} @{lower} => Equals(@{lower}),";
@@ -484,8 +494,80 @@ public sealed class ClassGenerator
         yield return "}";
         yield return string.Empty;
     }
+    
+    
+    private IEnumerable<string> GenerateSerializer()
+    {
+        yield return "using System.Text.Json;";
+        yield return "using System.Text.Json.Serialization;";
+        yield return string.Empty;
+        yield return "namespace cunit.Json";
+        yield return "{";
+        yield return $"\tpublic sealed class {Unit.Name}JsonConverter : JsonConverter<{Unit.Name}>";
+        yield return "\t{";
+        yield return $"\t\tpublic override {Unit.Name} Read(";
+        yield return "\t\t\tref Utf8JsonReader reader,";
+        yield return "\t\t\tType typeToConvert,";
+        yield return "\t\t\tJsonSerializerOptions options)";
+        yield return "\t\t{";
+        yield return "\t\t\tif (reader.TokenType == JsonTokenType.StartArray) reader.Read();";
+        yield return string.Empty;
+        
+        if (Unit.Dimensions is null)
+        {
+            yield return $"\t\t\tvar value = reader.Get{ToTitleCase(Numerics.NumberType)}();";
+            yield return $"\t\t\treturn new {Unit.Name}(value);";
+        }
+        else
+        {
+            List<string> parameters = new(Unit.Dimensions.Length);
+            for(int i = 0; i < Unit.Dimensions.Length; i++)
+            {
+                yield return $"\t\t\treader.TryGet{ToTitleCase(Numerics.NumberType)}(out {Numerics.NumberType} {Generics.GetParam(i).ToLowerInvariant()});";
+                yield return "\t\t\treader.Read();";
+                yield return string.Empty;
+                
+                parameters.Add(Generics.GetParam(i).ToLowerInvariant());
+            }
+            
+            yield return "\t\t\tif (reader.TokenType == JsonTokenType.EndArray) reader.Read();";
+            yield return string.Empty;
+            yield return $"\t\t\treturn new {Unit.Name}({string.Join(", ", parameters)});";
+        }
+        yield return "\t\t}";
+        yield return string.Empty;
+        yield return "\t\tpublic override void Write(";
+        yield return "\t\t\tUtf8JsonWriter writer,";
+        yield return $"\t\t\t{Unit.Name} unit,";
+        yield return "\t\t\tJsonSerializerOptions options)";
+        yield return "\t\t{";
+        if (Unit.Dimensions is null)
+        {
+            yield return "\t\t\twriter.WriteNumberValue(unit.Value);";
+        }
+        else
+        {
+            yield return $"\t\t\twriter.WriteStartArray();";
+            for(int i = 0; i < Unit.Dimensions.Length; i++)
+            {
+                yield return $"\t\t\twriter.WriteNumberValue(unit.{Generics.GetParam(i)}.Value);";
+            }
+            yield return $"\t\t\twriter.WriteEndArray();";
+        }
+        yield return "\t\t}";
+        yield return "\t}";
+        yield return "}";
+        yield return string.Empty;
+    }
 
+    private string ToTitleCase(string value)
+    {
+        string val = value.ToLowerInvariant();
+        return $"{val[0].ToString().ToUpperInvariant()}{val[1..]}";
+    }
+    
     public IReadOnlyCollection<string> GetLines() => Lines;
+    public IReadOnlyCollection<string> GetJsonLines() => JsonLines;
 
     private string GetCalculation()
     {
