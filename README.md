@@ -21,8 +21,19 @@ We quickly see that cunit is designed to work like and alongside doubles. There 
 
 For more syntax, see this test class [Syntax](https://github.com/clicketyclackety/cunit/blob/main/tests/cunit.tests/Syntax.cs).
 
+
+# Serializing
+cunit has native `System.Text.Json` support, you can serialize and deserialize each unit without much effort.
+``` c#
+Kilogram kg = 2;
+var json = JsonSerializer.Serialize(kg);
+var new_kg = JsonSerializer.Deserialize<Meter>(json);
+```
+
+
 # Performance
-All of cunits units are readonly structs that are entirely precomputed. That is to say, once your unit is created, GetHashCode() has no overhead, nor does ToString(), the Value or any operation that is internal to the structure. (Equals and == of course perform a calculation). Every operation you perform with cunit takes place in the stack.
+All of cunits units are readonly structs that are entirely precomputed. That is to say, once your unit is created, GetHashCode() has no overhead. (Equals and == of course perform a calculation). Every operation you perform with cunit takes place in the stack.
+See cunit.benchmarks for more info on speed comparisons, but currently cunit is only slightly slower than a regular double in all operations, including serialization.
 
 
 # Structure
@@ -41,7 +52,7 @@ Console.WriteLine(kmph.YValue);
 
 
 # SI
-Everything in cunit is based on SI. Every unit is always a representation of a base SI unit, and any unit can be converted to SI by calling `ToSI()`. 
+Everything in cunit is based on SI. Every unit is always a representation of a base SI unit, and any unit return an SI unit by calling `ToSI()`. 
 
 
 # Building
