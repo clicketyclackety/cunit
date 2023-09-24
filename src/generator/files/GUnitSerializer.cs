@@ -1,4 +1,5 @@
 using System.Reflection;
+using generator.files;
 using generators.foundations;
 
 namespace generator.units;
@@ -14,17 +15,7 @@ public class GUnitSerializer : IGenerateableFile
     }
     
     public string GetFilePath()
-    {
-        Assembly assembly = typeof(GUnit).Assembly;
-
-        var dotnetDir = Path.GetDirectoryName(assembly.Location);
-        var configurationDir = Path.GetDirectoryName(dotnetDir);
-        var binDir = Path.GetDirectoryName(configurationDir);
-        var generatorDir = Path.GetDirectoryName(binDir);
-        var srcDir = Path.GetDirectoryName(generatorDir);
-        
-        return Path.Combine(srcDir, "cunit", $"{Unit.Name}Converter.cs");
-    }
+        => Path.Combine(FileUtils.GetCunitBaseDirectory(), "json", $"{Unit.Name}Converter.cs");
 
     public List<string> Generate()
     {
