@@ -1,29 +1,60 @@
 using System.Reflection;
-using generator.units;
 using generators.foundations;
 
-namespace generators.files;
+namespace generator.units;
 
-
-// Good Reading : https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview
-public sealed class ClassGenerator
+public class GUnit : IGenerateableFile
 {
-    private readonly List<string> Lines;
-    private readonly List<string> JsonLines; 
-    private UnitList.UnitDescription Unit;
+    
+    private List<string> lines = new();
 
-    private static string[] genericNames => Generics.Names;
+    public readonly string Name;
+    public readonly string Symbol;
+    public GUnit Unit => this;
+    public readonly GUnit BaseUnit;
+    public readonly string[] Dimensions;
+    public readonly string Formula;
+    public readonly string Calculation;
 
-    internal ClassGenerator(UnitList.UnitDescription unitDescription)
+    public GUnit(string name,
+        string symbol,
+        GUnit? baseUnit = null,
+        string[]? dimensions = null,
+        string formula = "",
+        string calculation = "")
     {
-        Lines = new();
-        JsonLines = new();
-        Unit = unitDescription;
+        Name = name;
+        Symbol = symbol;
+        BaseUnit = baseUnit;
+        Dimensions = dimensions;
+        Formula = formula;
+        Calculation = calculation;
     }
 
-    internal string GetFilePath()
+    public List<String> Generate()
     {
-        Assembly assembly = typeof(ClassGenerator).Assembly;
+        lines.Clear();
+        lines.AddRange(GenerateNamespace());
+        lines.AddRange(GenerateClassDeclaration());
+        lines.AddRange(GenerateClassProperties());
+        lines.AddRange(GenerateConstructors());
+        lines.AddRange(GenerateClassMethods());
+        lines.AddRange(GenerateImplicitOperators());
+        lines.AddRange(GenerateTupleOperators());
+        lines.AddRange(GeneratePlusMinusOperators());
+        lines.AddRange(GenerateMultiplyDivideOperators());
+        lines.AddRange(GeneratePositiveNegativeOperators());
+        lines.AddRange(GenerateGreaterLessThansOperators());
+        lines.AddRange(GenerateEquality());
+        lines.AddRange(GenerateClassFooter());
+        lines.Add(string.Empty);
+
+        return lines;
+    }
+    
+    public string GetFilePath()
+    {
+        Assembly assembly = typeof(GUnit).Assembly;
 
         var dotnetDir = Path.GetDirectoryName(assembly.Location);
         var configurationDir = Path.GetDirectoryName(dotnetDir);
@@ -33,31 +64,8 @@ public sealed class ClassGenerator
         
         return Path.Combine(srcDir, "cunit", $"{Unit.Name}.cs");
     }
-
-    public void Generate()
-    {
-        Lines.Clear();
-        JsonLines.Clear();
-        
-        Lines.AddRange(GenerateNamespace());
-        Lines.AddRange(GenerateClassHeader());
-        Lines.AddRange(GenerateClassProperties());
-        Lines.AddRange(GenerateClassConstructors());
-        Lines.AddRange(GenerateClassMethods());
-        Lines.AddRange(GenerateImplicitOperators());
-        Lines.AddRange(GenerateTupleOperators());
-        Lines.AddRange(GeneratePlusMinusOperators());
-        Lines.AddRange(GenerateMultiplyDivideOperators());
-        Lines.AddRange(GeneratePositiveNegativeOperators());
-        Lines.AddRange(GenerateGreaterLessThansOperators());
-        Lines.AddRange(GenerateEquality());
-        Lines.AddRange(GenerateClassFooter());
-        Lines.Add(string.Empty);
-        
-        JsonLines.AddRange(GenerateSerializer());
-    }
-
-    private IEnumerable<string> GenerateNamespace()
+    
+    public virtual IEnumerable<string> GenerateNamespace()
     {
         yield return "using System.Globalization;";
         yield return "using System.Text.Json.Serialization;";
@@ -68,12 +76,12 @@ public sealed class ClassGenerator
         yield return string.Empty;
     }
     
-    private IEnumerable<string> GenerateClassHeader()
+    public virtual IEnumerable<string> GenerateClassDeclaration()
     {
         yield return "/// <summary>";
-        yield return $"/// Represents a {Unit.Name} Unit.";
+        yield return $"/// Represents a {Name} Unit.";
         yield return "/// </summary>";
-        yield return $"[JsonConverter(typeof({Unit.Name}JsonConverter))]";
+        yield return $"[JsonConverter(typeof({Name}JsonConverter))]";
         var interfaces = new List<string>()
         {
             $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>"
@@ -89,7 +97,7 @@ public sealed class ClassGenerator
         var classDeclaration = $"public readonly struct {Unit.Name} :\n\t\t\t\t";
 
         
-        var relatedUnits = Utils.GetRelatedUnits(Unit).Union(new [] {Unit});
+        var relatedUnits = Utils.GetRelatedUnits(this).Union(new [] {Unit});
         foreach (var relatedUnit in relatedUnits)
         {
             interfaces.Add($"IEquatable<{relatedUnit.Name}>");
@@ -101,15 +109,15 @@ public sealed class ClassGenerator
         yield return "{";
         yield return string.Empty;
     }
-    
-    private IEnumerable<string> GenerateClassProperties()
+
+    public virtual IEnumerable<string> GenerateClassProperties()
     {
         yield return $"\tprivate readonly int _preComputedHash = -1;";
         
         // If we have multiple dimensions, this should be more complex
         if (Unit.Dimensions?.Length > 1)
         {
-            var names = Generics.GetUnitParameterNames(Unit);
+            var names = Generics.GetUnitParameterNames(this);
 
             yield return $"\tprivate readonly {Numerics.NumberType} _preComputedValue = 1;";
             
@@ -119,7 +127,7 @@ public sealed class ClassGenerator
             yield return $"\tpublic readonly {Numerics.NumberType} Value => _preComputedValue;";
             yield return string.Empty;
             
-            foreach(var pair in Generics.GetUnitTypeParameterPairs(Unit))
+            foreach(var pair in Generics.GetUnitTypeParameterPairs(this))
             {
                 yield return "\t/// <summary>The value of this unit</summary>";
                 yield return $"\tpublic {pair.Dim} {pair.Param} {{ get; }} = 1;";
@@ -133,15 +141,13 @@ public sealed class ClassGenerator
         
         yield return string.Empty;
     }
-
-    private IEnumerable<string> GenerateClassConstructors()
+    
+    public virtual IEnumerable<string> GenerateConstructors()
     {
-        // If we have multiple dimensions, this should be more complex
-        
         yield return $"\t/// <summary>Creates a new instance of a {Unit.Name}</summary>";
         if (Unit.Dimensions?.Length > 1)
         {
-            string[] paramNames = Generics.GetUnitParameterNames(Unit);
+            string[] paramNames = Generics.GetUnitParameterNames(this);
             
             string tuples = string.Join(", ", Unit.Dimensions);
             List<(string, string)> tupleValues = new();
@@ -193,7 +199,7 @@ public sealed class ClassGenerator
         yield return "\t}";
         yield return string.Empty;
     }
-
+    
     private IEnumerable<string> GenerateClassMethods()
     {
         var baseUnit = Unit.BaseUnit ?? Unit;
@@ -231,7 +237,7 @@ public sealed class ClassGenerator
             yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new (({Calculations.InvertCalculation(Calculations.FormatCalculation(Unit.Calculation))}));";
             yield return string.Empty;
 
-            foreach (var r in Utils.GetRelatedUnits(Unit))
+            foreach (var r in Utils.GetRelatedUnits(this))
             {
                 if (r == Unit.BaseUnit)
                     continue;
@@ -503,7 +509,6 @@ public sealed class ClassGenerator
         yield return string.Empty;
     }
     
-    
     private IEnumerable<string> GenerateSerializer()
     {
         yield return "using System.Text.Json;";
@@ -573,21 +578,18 @@ public sealed class ClassGenerator
         string val = value.ToLowerInvariant();
         return $"{val[0].ToString().ToUpperInvariant()}{val[1..]}";
     }
-    
-    public IReadOnlyCollection<string> GetLines() => Lines;
-    public IReadOnlyCollection<string> GetJsonLines() => JsonLines;
 
     private string GetCalculation()
     {
         string formulae = Unit.Formula?.ToLowerInvariant();
-        for(int i = 0; i < genericNames.Length; i++)
+        for(int i = 0; i < Generics.Names.Length; i++)
         {
-            var genericName = genericNames[i];
+            var genericName = Generics.Names[i];
             string parameterName = $"{genericName.ToUpperInvariant()}Value";
             formulae = formulae.Replace($"<{i}>", parameterName);
         }
 
         return formulae.ToLowerInvariant();
     }
-
+    
 }

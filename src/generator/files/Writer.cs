@@ -11,10 +11,10 @@ internal sealed class Writer
         var matrixUnits = UnitList.GetUnits();
         foreach(var unit in matrixUnits)
         {
-            ClassGenerator generator = new ClassGenerator(unit);
-            generator.Generate();
-            File.WriteAllLines(generator.GetFilePath(), generator.GetLines());
-            File.WriteAllLines(generator.GetFilePath().Replace(".cs", "Converter.cs"), generator.GetJsonLines());
+            File.WriteAllLines(unit.GetFilePath(), unit.Generate());
+
+            var serializer = new GUnitSerializer(unit);
+            File.WriteAllLines(serializer.GetFilePath(), serializer.Generate());
         }
         
     }

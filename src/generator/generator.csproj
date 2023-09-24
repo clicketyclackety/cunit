@@ -17,4 +17,12 @@
       <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
     </ItemGroup>
 
+
+
+
+
+    <ItemGroup>
+      <Compile Remove="files\ClassGenerator.cs" />
+    </ItemGroup>
+
 </Project>

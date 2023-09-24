@@ -13,17 +13,17 @@ public class Generics
     
     public static string GetParam(int index) => $"{Names[index]}Value";
     
-    public static string[] GetUnitNames(UnitList.UnitDescription unit)
-        => unit.Dimensions is null ? Array.Empty<string>() : Names[..unit.Dimensions.Length];
+    public static string[] GetUnitNames(GUnit gUnit)
+        => gUnit.Dimensions is null ? Array.Empty<string>() : Names[..gUnit.Dimensions.Length];
 
-    public static string[] GetUnitParameterNames(UnitList.UnitDescription unit)
-        => GetUnitNames(unit).Select(g => GetParam(g)).ToArray();
+    public static string[] GetUnitParameterNames(GUnit gUnit)
+        => GetUnitNames(gUnit).Select(g => GetParam(g)).ToArray();
 
-    public static IEnumerable<(string Dim, string Param)> GetUnitTypeParameterPairs(UnitList.UnitDescription unit)
+    public static IEnumerable<(string Dim, string Param)> GetUnitTypeParameterPairs(GUnit gUnit)
     {
-        for (int i = 0; i < unit.Dimensions.Length; i++)
+        for (int i = 0; i < gUnit.Dimensions.Length; i++)
         {
-            string dim = unit.Dimensions[i];
+            string dim = gUnit.Dimensions[i];
             string param = GetParam(Names[i]);
 
             yield return new (dim, param);

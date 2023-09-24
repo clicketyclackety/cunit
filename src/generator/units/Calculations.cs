@@ -6,15 +6,15 @@ namespace generator.units;
 public static class Calculations
 {
 
-    public static string GetFullCalculation(UnitList.UnitDescription unit)
+    public static string GetFullCalculation(GUnit gUnit)
     {
-        var result = unit.Calculation;
+        var result = gUnit.Calculation;
         result = result.Replace("<v>", "value");
-        if (unit.Dimensions?.Length >= 1)
+        if (gUnit.Dimensions?.Length >= 1)
         {
-            for (int i = 0; i < unit.Dimensions.Length; i++)
+            for (int i = 0; i < gUnit.Dimensions.Length; i++)
             {
-                var positionalUnit = UnitList.GetUnit(unit.Dimensions[i]);
+                var positionalUnit = UnitList.GetUnit(gUnit.Dimensions[i]);
                 var parameterName = Generics.GetParam(i);
                 result = result.Replace($"<{i}>", positionalUnit.Name);
             }
@@ -23,22 +23,22 @@ public static class Calculations
         return result;
     }
 
-    public static string GetCalcuation(UnitList.UnitDescription left, UnitList.UnitDescription right)
+    public static string GetCalcuation(GUnit left, GUnit right)
     {
         return $"{FormatCalculation(left.Calculation)} / {FormatCalculation(right.Calculation)}";
     }
     
-    public static string CombineCalcuationAndDimensions(UnitList.UnitDescription unit)
+    public static string CombineCalcuationAndDimensions(GUnit gUnit)
     {
-        if (unit.Dimensions is null)
-            return unit.Formula;
+        if (gUnit.Dimensions is null)
+            return gUnit.Formula;
         
-        string upperCalc = unit.Formula.ToUpperInvariant();
-        for (int i = 0; i < unit.Dimensions.Length; i++)
+        string upperCalc = gUnit.Formula.ToUpperInvariant();
+        for (int i = 0; i < gUnit.Dimensions.Length; i++)
         {
             string upperGeneric = Generics.Names[i].ToUpperInvariant();
             string doubleGeneric = $"{upperGeneric}{upperGeneric}";
-            upperCalc = upperCalc.Replace(doubleGeneric, unit.Dimensions[i]);
+            upperCalc = upperCalc.Replace(doubleGeneric, gUnit.Dimensions[i]);
         }
 
         return upperCalc;

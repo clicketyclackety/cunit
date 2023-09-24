@@ -3,19 +3,12 @@ using generators.files;
 
 namespace generator.units;
 
-// TODO : Make sure all of this works in System.Text.Json!
 public static class UnitList
 {
-    public record UnitDescription(string Name,
-                                        string Symbol,
-                                        UnitDescription? BaseUnit = null,
-                                        string[]? Dimensions = null,
-                                        string? Formula = "",
-                                        string Calculation = "<vV> * 1");
 
-    private static Dictionary<string, UnitDescription> units;
+    private static Dictionary<string, GUnit> units;
 
-    public static IEnumerable<UnitDescription> GetUnits()
+    public static IEnumerable<GUnit> GetUnits()
     {
         if (units is null)
             units = getUnits().ToDictionary(u => u.Name, u => u);
@@ -23,23 +16,23 @@ public static class UnitList
         return units.Values;
     }
 
-    public static IEnumerable<UnitDescription> GetUnitsUsingThis(UnitDescription unit)
+    public static IEnumerable<GUnit> GetUnitsUsingThis(GUnit gUnit)
     {
         foreach (var unitItem in GetUnits())
         {
-            if (unit.Dimensions is null || unit.Dimensions.Length < 1)
+            if (gUnit.Dimensions is null || gUnit.Dimensions.Length < 1)
                 continue;
 
-            if (!unit.Dimensions.Contains(unit.Name))
+            if (!gUnit.Dimensions.Contains(gUnit.Name))
                 continue;
 
             yield return unitItem;
         }
     }
 
-    public static UnitDescription GetUnit(string name) => units[name];
+    public static GUnit GetUnit(string name) => units[name];
 
-    private static IEnumerable<UnitDescription> getUnits()
+    private static IEnumerable<GUnit> getUnits()
     {
         // what is it
         // What is it made of
@@ -48,22 +41,22 @@ public static class UnitList
         
         #region MISC SPATIAL
 
-        var rad = new UnitDescription("Radian", "R", Calculation: "180/cunit.Constants.PI");
+        var rad = new GUnit("Radian", "R", calculation: "180/cunit.Constants.PI");
         yield return rad;
-        yield return new UnitDescription("Degree", "°", rad, Calculation: "<vV> * (180/cunit.Constants.PI)");
+        yield return new GUnit("Degree", "°", rad, calculation: "<vV> * (180/cunit.Constants.PI)");
         
         #endregion
         
         #region DISTANCE/AREA/VOLUME
         
-        var meter = new UnitDescription("Meter", "m");
-        var kilometer = new UnitDescription("Kilometer", "km", meter, Calculation: "<vV> * 1000");
-        var centimeter = new UnitDescription("Centimeter", "cm", meter, Calculation:"<vV> / 100");
-        var millimeter = new UnitDescription("Millimeter", "mm", meter, Calculation:"<vV> / 1000");
-        var foot = new UnitDescription("Foot", "ft", meter, Calculation:"<vV> *  0.3048");
-        var inch = new UnitDescription("Inch", "in", meter, Calculation:"<vV> *  0.0254");
+        var meter = new GUnit("Meter", "m");
+        var kilometer = new GUnit("Kilometer", "km", meter, calculation: "<vV> * 1000");
+        var centimeter = new GUnit("Centimeter", "cm", meter, calculation:"<vV> / 100");
+        var millimeter = new GUnit("Millimeter", "mm", meter, calculation:"<vV> / 1000");
+        var foot = new GUnit("Foot", "ft", meter, calculation:"<vV> *  0.3048");
+        var inch = new GUnit("Inch", "in", meter, calculation:"<vV> *  0.0254");
         
-        UnitDescription[] distanceUnits = new []
+        GUnit[] distanceUnits = new []
         {
             meter,
             kilometer,
@@ -73,14 +66,14 @@ public static class UnitList
             foot
         };
 
-        UnitDescription? meterSquared = null;
-        UnitDescription? meterCubed = null;
+        GUnit? meterSquared = null;
+        GUnit? meterCubed = null;
         foreach (var unit in distanceUnits)
         {
             // TODO : Fix Ratios, they require powers & base unit ratios
             // TODO : Ratio requires more than just a double! 
-            var squared = new UnitDescription($"{unit.Name}Squared", "m²", meterSquared, new [] {unit.Name, unit.Name}, Formula:"<0> * <1>", Calculation: $"<vx>, <vy>");
-            var cubed = new UnitDescription($"{unit.Name}Cubed", "m³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, Formula:"<0> * <1> * <2>", Calculation: $"<vx>, <vy>, <vz>");
+            var squared = new GUnit($"{unit.Name}Squared", "m²", meterSquared, new [] {unit.Name, unit.Name}, formula:"<0> * <1>", calculation: $"<vx>, <vy>");
+            var cubed = new GUnit($"{unit.Name}Cubed", "m³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, formula:"<0> * <1> * <2>", calculation: $"<vx>, <vy>, <vz>");
             
             if (unit.Name.Equals(meter.Name, StringComparison.InvariantCultureIgnoreCase))
             {
@@ -98,60 +91,60 @@ public static class UnitList
         
         #region TIME
         
-        var second = new UnitDescription("Second", "s");
+        var second = new GUnit("Second", "s");
         yield return second;
         
-        yield return new UnitDescription("MilliSecond", "s", second, Calculation: "<vV> * 1000");
-        yield return new UnitDescription("Hour", "H", second, Calculation: "<vV> / 60");
-        yield return new UnitDescription("Day", "H", second, Calculation: "<vV> / 60 * 24");
-        yield return new UnitDescription("Week", "H", second, Calculation: "<vV> / 60 * 24 * 7");
+        yield return new GUnit("MilliSecond", "s", second, calculation: "<vV> * 1000");
+        yield return new GUnit("Hour", "H", second, calculation: "<vV> / 60");
+        yield return new GUnit("Day", "H", second, calculation: "<vV> / 60 * 24");
+        yield return new GUnit("Week", "H", second, calculation: "<vV> / 60 * 24 * 7");
         
         #endregion
         
         #region HYBRID UNITS
 
-        yield return new UnitDescription("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}", null, new[] { meter.Name, second.Name }, Formula:"<0> / <1>");
-        yield return new UnitDescription("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, Formula:"<0> / (<1> * <1>)");
+        yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}", null, new[] { meter.Name, second.Name }, formula:"<0> / <1>");
+        yield return new GUnit("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, formula:"<0> / (<1> * <1>)");
 
         #endregion
         
         #region TEMPERATURE
         
-        var kelvin = new UnitDescription("Kelvin", "K");
+        var kelvin = new GUnit("Kelvin", "K");
         yield return kelvin;
-        yield return new UnitDescription("Celcius", "C", kelvin, Calculation: "<vV> + 273.15");
-        yield return new UnitDescription("Farenheight", "F", kelvin, Calculation: "((<vV> - 32) / 1.79999999) + 273.15");
+        yield return new GUnit("Celcius", "C", kelvin, calculation: "<vV> + 273.15");
+        yield return new GUnit("Farenheight", "F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15");
         
         #endregion
         
         # region MASS
         
-        var kilo = new UnitDescription("Kilogram", "Kg");
+        var kilo = new GUnit("Kilogram", "Kg");
         yield return kilo;
-        yield return new UnitDescription("Gram", "g", kilo, Calculation: "<vV> * 0.001");
-        yield return new UnitDescription("Tonne", "T", kilo, Calculation: "<vV> * 1000");
+        yield return new GUnit("Gram", "g", kilo, calculation: "<vV> * 0.001");
+        yield return new GUnit("Tonne", "T", kilo, calculation: "<vV> * 1000");
 
-        yield return new UnitDescription("Ounce", "oz", kilo, Calculation: "<vV> * 0.02834952");
-        yield return new UnitDescription("Pound", "lb", kilo, Calculation: "<vV> * 0.02834952 / 16");
+        yield return new GUnit("Ounce", "oz", kilo, calculation: "<vV> * 0.02834952");
+        yield return new GUnit("Pound", "lb", kilo, calculation: "<vV> * 0.02834952 / 16");
         
         #endregion
         
-        yield return new UnitDescription("Candela", "cd");
+        yield return new GUnit("Candela", "cd");
         
-        yield return new UnitDescription("Ampere", "A");
+        yield return new GUnit("Ampere", "A");
         
-        yield return new UnitDescription("Mole", "Mol");
+        yield return new GUnit("Mole", "Mol");
         
         #region MEMORY
         
-        var @byte = new UnitDescription("Byte", "B");
+        var @byte = new GUnit("Byte", "B");
         yield return @byte;
         
-        yield return new UnitDescription("Bit", "b", @byte, Calculation:"<vV> / 8");
+        yield return new GUnit("Bit", "b", @byte, calculation:"<vV> / 8");
         
-        yield return new UnitDescription("KiloByte", "B", @byte, Calculation:"<vV> * 1024");
-        yield return new UnitDescription("MegaByte", "MB", @byte, Calculation:"<vV> * 1024 * 1024");
-        yield return new UnitDescription("GigaByte", "GB", @byte, Calculation:"<vV> * 1024 * 1024 * 1024");
+        yield return new GUnit("KiloByte", "B", @byte, calculation:"<vV> * 1024");
+        yield return new GUnit("MegaByte", "MB", @byte, calculation:"<vV> * 1024 * 1024");
+        yield return new GUnit("GigaByte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024");
         
         #endregion
     }
