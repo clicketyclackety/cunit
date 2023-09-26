@@ -70,7 +70,6 @@ public static class UnitList
         GUnit? meterCubed = null;
         foreach (var unit in distanceUnits)
         {
-            // TODO : Fix Ratios, they require powers & base unit ratios
             // TODO : Ratio requires more than just a double! 
             var squared = new GUnit($"{unit.Name}Squared", "m²", meterSquared, new [] {unit.Name, unit.Name}, formula:"<0> * <1>", calculation: $"<vx>, <vy>");
             var cubed = new GUnit($"{unit.Name}Cubed", "m³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, formula:"<0> * <1> * <2>", calculation: $"<vx>, <vy>, <vz>");
