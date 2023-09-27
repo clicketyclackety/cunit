@@ -30,9 +30,38 @@ public class Mathmatics
         Celcius c = -40;
         Kelvin k = 273.15;
 
+        Assert.That(k == k);
+        
         Assert.That(k == c);
-
+        Assert.That(c == k);
+        
+        Assert.That(f == k);
+        Assert.That(k == f);
+        
         Assert.That(c == f);
+        Assert.That(f == c);
+        
+        Assert.That(k.Equals(k), Is.True);
+        
+        Assert.That(k.Equals(c), Is.True);
+        Assert.That(c.Equals(k), Is.True);
+        
+        Assert.That(f.Equals(k), Is.True);
+        Assert.That(k.Equals(f), Is.True);
+        
+        Assert.That(c.Equals(f), Is.True);
+        Assert.That(f.Equals(c), Is.True);
+        
+        Assert.That(k, Is.EqualTo(k));
+        
+        Assert.That(k, Is.EqualTo(c));
+        Assert.That(c, Is.EqualTo(k));
+        
+        Assert.That(f, Is.EqualTo(k));
+        Assert.That(k, Is.EqualTo(f));
+        
+        Assert.That(c, Is.EqualTo(f));
+        Assert.That(f, Is.EqualTo(c));
     }
 
     [Test]

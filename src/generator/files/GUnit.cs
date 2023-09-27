@@ -84,7 +84,8 @@ public class GUnit : IGenerateableFile
         yield return $"[JsonConverter(typeof({Name}JsonConverter))]";
         var interfaces = new List<string>()
         {
-            $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>"
+            $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>",
+            $"IEquatable<IUnit<{(Unit.BaseUnit ?? Unit).Name}>>"
         };
 
         if (Unit.Dimensions is not null)
@@ -92,8 +93,6 @@ public class GUnit : IGenerateableFile
             interfaces.Add($"IUnit<{string.Join(", ", Unit.Dimensions)}>");
         }
 
-        interfaces.Add("IFormattable");
-        interfaces.Add($"IEquatable<{Numerics.NumberType}>");
         var classDeclaration = $"public readonly struct {Unit.Name} :\n\t\t\t\t";
 
         
@@ -410,52 +409,43 @@ public class GUnit : IGenerateableFile
 
     private IEnumerable<string> GenerateEquality()
     {
-
         yield return "\t#region Equality";
         yield return string.Empty;
 
         // Equality and Hashing
-        yield return
-            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for equality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator ==({Unit.Name} left, {Numerics.NumberType} right)" +
-                     $" => left.Equals(right);";
-        yield return
-            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for inequality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator !=({Unit.Name} left, {Numerics.NumberType} right) => !(left == right);";
         
-        yield return
-            $"\t/// <summary>Compares this {Numerics.NumberType} with a {Unit.Name} for equality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator ==({Numerics.NumberType} left, {Unit.Name} right)" +
-                     $" => left.Equals(right);";
-        yield return
-            $"\t/// <summary>Compares this {Numerics.NumberType} with a {Unit.Name} for inequality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator !=({Numerics.NumberType} left, {Unit.Name} right) => !(left == right);";
-        
-        yield return
-            $"\t/// <summary>Compares this {Unit.Name} with a {Numerics.NumberType} for Equality (Constants Tolerance used)</summary>";
-        yield return
-            $"\tpublic bool Equals({Numerics.NumberType} unit) => Math.Abs((this - unit).Value) == 0;";
-        yield return string.Empty;
-        
-        yield return
-            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for equality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator ==({Unit.Name} left, {Unit.Name} right)" +
-                     $" => left.Equals(right);";
-
-        yield return
-            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
-        yield return $"\tpublic static bool operator !=({Unit.Name} left, {Unit.Name} right) => !(left == right);";
+        string unitOrBaseUnit = (Unit.BaseUnit ?? Unit).Name;
         
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
-        yield return $"\tpublic bool Equals({Unit.Name} unit) => Math.Abs((this - unit).Value) == 0;";
-        yield return $"\t/// <summary>Compares {Unit.Name} with {Unit.Name} for Equality given a tolerance</summary>";
         yield return
-            $"\tpublic bool EpsilonEquals({Unit.Name} unit, double tolerance) => Math.Abs((this - unit).Value) < cunit.Constants.Tolerance;"; 
-        
+            $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}> unit) => Math.Abs((this.ToSI() - unit.ToSI()).Value) == 0;";
+        yield return
+            $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with {Unit.Name} for Equality given a tolerance</summary>";
+        yield return
+            $"\tpublic bool EpsilonEquals(IUnit<{unitOrBaseUnit}> unit, double tolerance) => Math.Abs((this.ToSI() - unit.ToSI()).Value) < cunit.Constants.Tolerance;";
+    
+        yield return
+            $"\t/// <summary>Compares an object with another {Unit.Name} for equality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator ==(IUnit<{unitOrBaseUnit}> left, {Unit.Name} right)" +
+                     $" => left.Equals(right);";
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
+        yield return
+            $"\tpublic static bool operator !=(object left, {Unit.Name} right) => !(left == right);";
+
+        yield return
+            $"\t/// <summary>Compares an object with another {Unit.Name} for equality (no tolerance used)</summary>";
+        yield return $"\tpublic static bool operator ==(object left, {Unit.Name} right)" +
+                     $" => left is IUnit<{unitOrBaseUnit}> unit && unit.Equals(right);";
+        yield return
+            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
+        yield return
+            $"\tpublic static bool operator !=(IUnit<{unitOrBaseUnit}> left, {Unit.Name} right) => !(left == right);";
+
         yield return string.Empty;
 
-        foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
+        foreach (var relatedUnit in Utils.GetRelatedUnits(Unit).Union(new []{ Unit }))
         {
             yield return
                 $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for equality (no tolerance used)</summary>";
@@ -475,16 +465,7 @@ public class GUnit : IGenerateableFile
         yield return $"\tpublic override int GetHashCode() => _preComputedHash;";
         yield return string.Empty;
 
-        // TODO: Create EpsilonEquals as well!
-        yield return $"\tpublic override bool Equals(object? obj) => obj switch {{";
-        foreach (var unit in new [] {Unit}.Union(Utils.GetRelatedUnits(Unit)))
-        {
-            var lower = unit.Name.ToLowerInvariant();
-            yield return $"\t\t\t{unit.Name} @{lower} => Equals(@{lower}),";
-        }
-        yield return $"\t\t\t{Numerics.NumberType} number => Equals(number),";
-        yield return $"\t\t\t_ => false";
-        yield return "\t};";
+        yield return $"\tpublic override bool Equals(object? obj) => obj is IUnit<{unitOrBaseUnit}> unit && Equals(unit);";
         yield return string.Empty;
         yield return $"\tpublic override string ToString() => ToString(\"G\");";
 
