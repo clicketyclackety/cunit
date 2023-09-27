@@ -85,7 +85,8 @@ public class GUnit : IGenerateableFile
         var interfaces = new List<string>()
         {
             $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>",
-            $"IEquatable<IUnit<{(Unit.BaseUnit ?? Unit).Name}>>"
+            "IFormattable"
+            $"IEquatable<IUnit<{(Unit.BaseUnit ?? Unit).Name}>>",
         };
 
         if (Unit.Dimensions is not null)
