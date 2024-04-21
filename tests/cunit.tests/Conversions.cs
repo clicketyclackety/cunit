@@ -46,8 +46,8 @@ public class Conversions
     [Test]
     public void TemperatureConversion()
     {
-        Celcius c = -40;
-        Farenheight f = -40;
+        Celsius c = -40;
+        Fahrenheit f = -40;
         
         Assert.That(c, Is.EqualTo(f));
         Assert.That(f, Is.EqualTo(c));

@@ -111,8 +111,8 @@ public static class UnitList
         
         var kelvin = new GUnit("Kelvin", "K");
         yield return kelvin;
-        yield return new GUnit("Celcius", "C", kelvin, calculation: "<vV> + 273.15");
-        yield return new GUnit("Farenheight", "F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15");
+        yield return new GUnit("Celsius", "C", kelvin, calculation: "<vV> + 273.15");
+        yield return new GUnit("Fahrenheit", "F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15");
         
         #endregion
         
