@@ -40,8 +40,8 @@ public class Tests
         Meter m2 = 200;
         MeterSquared ms = m1 * m2;
 
-        Farenheight f = 30;
-        Celcius c = 42;
+        Fahrenheit f = 30;
+        Celsius c = 42;
         Kelvin k = (c - f) * 20; 
     }
 

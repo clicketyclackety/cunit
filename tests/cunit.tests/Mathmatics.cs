@@ -26,8 +26,8 @@ public class Mathmatics
     [Test]
     public void Temperature()
     {
-        Farenheight f = -40;
-        Celcius c = -40;
+        Fahrenheit f = -40;
+        Celsius c = -40;
         Kelvin k = 273.15;
 
         Assert.That(k == k);

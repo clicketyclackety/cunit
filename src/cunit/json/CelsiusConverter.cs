@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace cunit.Json
 {
-	public sealed class CelciusJsonConverter : JsonConverter<Celcius>
+	public sealed class CelsiusJsonConverter : JsonConverter<Celsius>
 	{
-		public override Celcius Read(
+		public override Celsius Read(
 			ref Utf8JsonReader reader,
 			Type typeToConvert,
 			JsonSerializerOptions options)
@@ -13,12 +13,12 @@ namespace cunit.Json
 			if (reader.TokenType == JsonTokenType.StartArray) reader.Read();
 
 			var value = reader.GetDouble();
-			return new Celcius(value);
+			return new Celsius(value);
 		}
 
 		public override void Write(
 			Utf8JsonWriter writer,
-			Celcius unit,
+			Celsius unit,
 			JsonSerializerOptions options)
 		{
 			writer.WriteNumberValue(unit.Value);
