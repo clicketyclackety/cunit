@@ -10,8 +10,6 @@ namespace cunit.Json
 			Type typeToConvert,
 			JsonSerializerOptions options)
 		{
-			if (reader.TokenType == JsonTokenType.StartArray) reader.Read();
-
 			var value = reader.GetDouble();
 			return new Centimeter(value);
 		}

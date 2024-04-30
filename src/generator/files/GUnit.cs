@@ -307,7 +307,7 @@ public class GUnit : IGenerateableFile
                 }
                 else
                 {
-                    declarationLine += $" => left.Value {@operator} ({Unit.Name})right;";
+                    declarationLine += $" => left.ToSI().Value {@operator} right.ToSI().Value;";
                     yield return declarationLine;
                 }
             }
@@ -397,7 +397,7 @@ public class GUnit : IGenerateableFile
             foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
             {
                 yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {relatedUnit.Name} right)" +
-                             $" => left.Value {statement} ({Unit.Name})right;";
+                             $" => left.ToSI().Value {statement} right.ToSI().Value;";
             }
             
             yield return string.Empty;
@@ -420,11 +420,11 @@ public class GUnit : IGenerateableFile
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
         yield return
-            $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}> unit) => Math.Abs((this.ToSI() - unit.ToSI()).Value) == 0;";
+            $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}> unit) => Math.Abs((this.ToSI() - unit.ToSI()).Value) <= cunit.Constants.Tolerance;";
         yield return
             $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with {Unit.Name} for Equality given a tolerance</summary>";
         yield return
-            $"\tpublic bool EpsilonEquals(IUnit<{unitOrBaseUnit}> unit, double tolerance) => Math.Abs((this.ToSI() - unit.ToSI()).Value) < cunit.Constants.Tolerance;";
+            $"\tpublic bool EpsilonEquals(IUnit<{unitOrBaseUnit}> unit, double tolerance) => Math.Abs((this.ToSI() - unit.ToSI()).Value) <= tolerance;";
     
         yield return
             $"\t/// <summary>Compares an object with another {Unit.Name} for equality (no tolerance used)</summary>";
@@ -455,10 +455,13 @@ public class GUnit : IGenerateableFile
 
             yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for inequality (no tolerance used)</summary>";
             yield return $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnit.Name} right) => !(left == right);";
+
+            var calc = Unit.BaseUnit is null ? "this - unit" : "unit - this";
             yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for Equality (Constants Tolerance used)</summary>";
-            yield return $"\tpublic bool Equals({relatedUnit.Name} unit) => Math.Abs((this - unit).Value) == 0;";
+            yield return $"\tpublic bool Equals({relatedUnit.Name} unit) => Math.Abs(({calc}).Value) <= cunit.Constants.Tolerance;";
             yield return $"\t/// <summary>Compares {Unit.Name} with {relatedUnit.Name} for Equality given a tolerance</summary>";
-            yield return $"\tpublic bool EpsilonEquals({relatedUnit.Name} unit, double tolerance) => Math.Abs((this - unit).Value) < cunit.Constants.Tolerance;";
+            yield return $"\tpublic bool EpsilonEquals({relatedUnit.Name} unit, double tolerance) => Math.Abs(({calc}).Value) <= tolerance;";
+            
             yield return string.Empty;
         }
 

@@ -36,8 +36,12 @@ public class GUnitSerializer : IGenerateableFile
         yield return "\t\t\tType typeToConvert,";
         yield return "\t\t\tJsonSerializerOptions options)";
         yield return "\t\t{";
-        yield return "\t\t\tif (reader.TokenType == JsonTokenType.StartArray) reader.Read();";
-        yield return string.Empty;
+
+        if (Unit.Dimensions is not null)
+        {
+            yield return "\t\t\tif (reader.TokenType == JsonTokenType.StartArray) reader.Read();";
+            yield return string.Empty;
+        }
         
         if (Unit.Dimensions is null)
         {
@@ -56,8 +60,8 @@ public class GUnitSerializer : IGenerateableFile
                 parameters.Add(Generics.GetParam(i).ToLowerInvariant());
             }
             
-            yield return "\t\t\tif (reader.TokenType == JsonTokenType.EndArray) reader.Read();";
-            yield return string.Empty;
+            // yield return "\t\t\tif (reader.TokenType == JsonTokenType.EndArray) reader.Read();"; 
+            // yield return string.Empty;
             yield return $"\t\t\treturn new {Unit.Name}({string.Join(", ", parameters)});";
         }
         yield return "\t\t}";

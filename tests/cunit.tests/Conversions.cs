@@ -49,6 +49,11 @@ public class Conversions
         Celsius c = -40;
         Fahrenheit f = -40;
         
+        Assert.That(c, Is.EqualTo(c));
+
+        Celsius c2 = f;
+        Assert.That(c, Is.EqualTo(c2));
+
         Assert.That(c, Is.EqualTo(f));
         Assert.That(f, Is.EqualTo(c));
     }

@@ -21,8 +21,6 @@ namespace cunit.Json
 			reader.TryGetDouble(out double zvalue);
 			reader.Read();
 
-			if (reader.TokenType == JsonTokenType.EndArray) reader.Read();
-
 			return new MillimeterCubed(xvalue, yvalue, zvalue);
 		}
 

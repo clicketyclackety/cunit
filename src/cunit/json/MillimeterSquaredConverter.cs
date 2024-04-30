@@ -18,8 +18,6 @@ namespace cunit.Json
 			reader.TryGetDouble(out double yvalue);
 			reader.Read();
 
-			if (reader.TokenType == JsonTokenType.EndArray) reader.Read();
-
 			return new MillimeterSquared(xvalue, yvalue);
 		}
 
