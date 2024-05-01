@@ -77,12 +77,6 @@ public class Mathmatics
         Assert.That(B, Is.EqualTo(KB));
         Assert.That(B, Is.EqualTo(MB));
         Assert.That(B, Is.EqualTo(GB));
-
-        var km = Kilo.Meter(200);
-
-        var meter = km.ToSI();
-
-        var m = km / meter;
     }
     
 }
