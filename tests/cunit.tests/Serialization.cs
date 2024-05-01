@@ -9,6 +9,22 @@ namespace cunit.tests;
 public class Serialization
 {
     
+    [Test]
+    public void TestUniversalSerialization()
+    {
+        Gram gram = 20;
+        var json = JsonSerializer.Serialize(gram);
+        var newGram = JsonSerializer.Deserialize(json, gram.GetType());
+
+        var newKilogram = JsonSerializer.Deserialize(json, typeof(Kilogram));
+        
+        Assert.Multiple(() =>
+        {
+            Assert.That(gram, Is.EqualTo(newGram));
+            Assert.That(newKilogram, Is.EqualTo(gram));
+        });
+    }
+    
     [Theory]
     [TestCaseSource(nameof(Units))]
     public void TestSerialization(object unit)
@@ -16,11 +32,8 @@ public class Serialization
         var json = JsonSerializer.Serialize(unit);
         var newUnit = JsonSerializer.Deserialize(json, unit.GetType());
         
-        Assert.Multiple(() =>
-        {
-            Assert.That(newUnit, Is.EqualTo(unit));
-            Assert.That(unit, Is.EqualTo(newUnit));
-        });
+        Assert.That(newUnit, Is.EqualTo(unit));
+        Assert.That(unit, Is.EqualTo(newUnit));
     }
     
     [Theory]
@@ -71,8 +84,6 @@ public class Serialization
     {
         get
         {
-            // TODO : How to allow cunit items to be in dictionaries natively?
-            
             yield return new Meter[]  { 1, 2,3 ,4,5 , 500 };
             yield return new MeterCubed[]  { 1, 2,3 ,4,5 , 500 };
             yield return new HashSet<InchSquared>  { 1, 2,3 ,4,5 , 500 };

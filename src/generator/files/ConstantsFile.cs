@@ -19,8 +19,8 @@ public sealed class ConstantsFile : IGenerateableFile
         yield return "{";
         yield return "    public static double Tolerance { get; set; } = 0.0001;";
         yield return string.Empty;
-        yield return "    public static double PI { get; set; } = Math.PI;";
-        yield return "    public static double TAU => PI * 2;";
+        yield return "    public const double PI = Math.PI;";
+        yield return "    public const double TAU = PI * 2;";
         yield return string.Empty;
         yield return "}";
     }

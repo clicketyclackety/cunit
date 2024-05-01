@@ -4,18 +4,11 @@ using generators.foundations;
 
 namespace generator.units;
 
-public class GUnitSerializer : IGenerateableFile
+public class UniversalSerializer : IGenerateableFile
 {
-
-    public readonly GUnit Unit;
-
-    public GUnitSerializer(GUnit unit)
-    {
-        Unit = unit;
-    }
     
     public string GetFilePath()
-        => Path.Combine(FileUtils.GetCunitBaseDirectory(), "json", $"{Unit.Name}Converter.cs");
+        => Path.Combine(FileUtils.GetCunitBaseDirectory(), "json", "UniversalConverter.cs");
 
     public List<string> Generate()
     {
@@ -27,73 +20,127 @@ public class GUnitSerializer : IGenerateableFile
         yield return "using System.Text.Json;";
         yield return "using System.Text.Json.Serialization;";
         yield return string.Empty;
+        yield return string.Empty;
         yield return "namespace cunit.Json";
         yield return "{";
-        yield return $"\tpublic sealed class {Unit.Name}JsonConverter : JsonConverter<{Unit.Name}>";
+        yield return "\tpublic sealed class UniversalConverter : JsonConverter<IUnit>";
         yield return "\t{";
-        yield return $"\t\tpublic override {Unit.Name} Read(";
+        yield return string.Empty;
+        yield return "\t\tpublic override bool CanConvert(Type typeToConvert) => typeToConvert.GetInterface(nameof(IUnit)) is not null;";
+        yield return string.Empty;
+        yield return "\t\tprivate IUnit Err => new UnknownUnit(0);";
+        yield return string.Empty;
+        yield return "\t\tpublic override IUnit Read(";
         yield return "\t\t\tref Utf8JsonReader reader,";
         yield return "\t\t\tType typeToConvert,";
         yield return "\t\t\tJsonSerializerOptions options)";
         yield return "\t\t{";
+        yield return "\t\t\ttry";
+        yield return "\t\t\t{";
+        yield return "\t\t\t\tvar value = reader.GetString();";
+        yield return "\t\t\t\tvar parts = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();";
+        yield return "\t\t\t\tvar symbol = parts.Last();";
+        yield return "\t\t\t\tvar dimensions = parts[0..(parts.Length-1)];";
+        yield return string.Empty;
+        yield return "\t\t\t\tList<double> dimensionValues = new (dimensions.Length);";
+        yield return "\t\t\t\tforeach(var doubleString in dimensions)";
+        yield return "\t\t\t\t{";
+        yield return "\t\t\t\t\tif (string.IsNullOrEmpty(doubleString))";
+        yield return "\t\t\t\t\t{";
+        yield return "\t\t\t\t\t\tdimensionValues.Add(0);";
+        yield return "\t\t\t\t\t\tcontinue;";
+        yield return "\t\t\t\t\t}";
+        yield return string.Empty;
+        yield return "\t\t\t\t\tif (!double.TryParse(doubleString, out var doubleValue))";
+        yield return "\t\t\t\t\t{";
+        yield return "\t\t\t\t\t\tdimensionValues.Add(0);";
+        yield return "\t\t\t\t\t\tcontinue;";
+        yield return "\t\t\t\t\t}";
+        yield return string.Empty;
+        yield return "\t\t\t\t\tdimensionValues.Add(doubleValue);";
+        yield return "\t\t\t\t}";
+        yield return string.Empty;
+        yield return "\t\t\t\tdynamic foundUnit = symbol switch";
+        yield return "\t\t\t\t{";
 
-        if (Unit.Dimensions is not null)
+        foreach(var unit in UnitList.GetUnits())
         {
-            yield return "\t\t\tif (reader.TokenType == JsonTokenType.StartArray) reader.Read();";
-            yield return string.Empty;
+            int dimCount = unit.Dimensions?.Length ?? 1;
+            var ints = Enumerable.Range(0, dimCount);
+            string args = string.Join(", ", ints.Select(i => $"dimensionValues[{i}]"));
+            yield return $"\t\t\t\t\t{unit.Name}.Symbol => new {unit.Name}({args}),";
         }
-        
-        if (Unit.Dimensions is null)
+
+        yield return "\t\t\t\t\t_ => Err";
+        yield return "\t\t\t\t};";
+
+        yield return string.Empty;
+
+        yield return "\t\t\t\treturn typeToConvert.Name switch";
+        yield return "\t\t\t\t{";
+        foreach(var unit in UnitList.GetUnits())
         {
-            yield return $"\t\t\tvar value = reader.Get{ToTitleCase(Numerics.NumberType)}();";
-            yield return $"\t\t\treturn new {Unit.Name}(value);";
+            yield return $"\t\t\t\t\tnameof({unit.Name}) => ({unit.Name})foundUnit,";
         }
-        else
-        {
-            List<string> parameters = new(Unit.Dimensions.Length);
-            for(int i = 0; i < Unit.Dimensions.Length; i++)
-            {
-                yield return $"\t\t\treader.TryGet{ToTitleCase(Numerics.NumberType)}(out {Numerics.NumberType} {Generics.GetParam(i).ToLowerInvariant()});";
-                yield return "\t\t\treader.Read();";
-                yield return string.Empty;
-                
-                parameters.Add(Generics.GetParam(i).ToLowerInvariant());
-            }
-            
-            // yield return "\t\t\tif (reader.TokenType == JsonTokenType.EndArray) reader.Read();"; 
-            // yield return string.Empty;
-            yield return $"\t\t\treturn new {Unit.Name}({string.Join(", ", parameters)});";
-        }
+
+        yield return "\t\t\t\t\t_ => Err";
+        yield return "\t\t\t\t};";
+        yield return string.Empty;
+        yield return "\t\t\t}";
+        yield return "\t\t\tcatch";
+        yield return "\t\t\t{";
+        yield return "\t\t\t\treturn Err;";
+        yield return "\t\t\t}";
         yield return "\t\t}";
         yield return string.Empty;
         yield return "\t\tpublic override void Write(";
         yield return "\t\t\tUtf8JsonWriter writer,";
-        yield return $"\t\t\t{Unit.Name} unit,";
+        yield return "\t\t\tIUnit unit,";
         yield return "\t\t\tJsonSerializerOptions options)";
         yield return "\t\t{";
-        if (Unit.Dimensions is null)
+        yield return "\t\t\tstring symbol = unit switch";
+        yield return "\t\t\t{";
+
+        foreach(var unit in UnitList.GetUnits())
         {
-            yield return "\t\t\twriter.WriteNumberValue(unit.Value);";
+            yield return $"\t\t\t\t{unit.Name} => {unit.Name}.Symbol,";
         }
-        else
-        {
-            yield return $"\t\t\twriter.WriteStartArray();";
-            for(int i = 0; i < Unit.Dimensions.Length; i++)
-            {
-                yield return $"\t\t\twriter.WriteNumberValue(unit.{Generics.GetParam(i)}.Value);";
-            }
-            yield return $"\t\t\twriter.WriteEndArray();";
-        }
-        yield return "\t\t}";
-        yield return "\t}";
-        yield return "}";
+
+        yield return "\t\t\t\t_ => UnknownUnit.Symbol";
+        yield return "\t\t\t};";
         yield return string.Empty;
-    }
-    
-    private string ToTitleCase(string value)
-    {
-        string val = value.ToLowerInvariant();
-        return $"{val[0].ToString().ToUpperInvariant()}{val[1..]}";
+        yield return $"\t\t\tvar json = \"\";";
+        yield return string.Empty;
+        yield return $"\t\t\tdynamic dynamicUnit = unit;";
+        yield return string.Empty;
+
+        for (int i = 2; i < Generics.Names.Length; i++)
+        {
+            string elseString = i != 2 ? "else " : "";
+            yield return $"\t\t\t{elseString}if (unit is IUnit{i}D)";
+            yield return "\t\t\t{";
+            for (int ii = 0; ii < i; ii++)
+            {
+                var names = Generics.Names[ii];
+                yield return $"\t\t\t\tjson += $\" {{dynamicUnit.{names}Value.Value}}\";";
+            }
+            yield return "\t\t\t}";
+        }
+
+        yield return $"\t\t\telse";
+        yield return $"\t\t\t\tjson = $\"{{unit.Value}}\";";
+        
+        yield return string.Empty;
+        yield return $"\t\t\tjson += $\" {{symbol}}\";";
+
+        yield return string.Empty;
+        yield return "\t\t\twriter.WriteStringValue(json);";
+        yield return string.Empty;
+        yield return "\t\t}";
+        yield return string.Empty;
+        yield return "\t}";
+        yield return string.Empty;
+        yield return "}";
     }
 
 }

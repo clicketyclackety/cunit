@@ -13,10 +13,10 @@ internal sealed class Writer
         foreach(var unit in matrixUnits)
         {
             WriteFile(unit);
-
-            var serializer = new GUnitSerializer(unit);
-            WriteFile(serializer);
         }
+        
+        var serializer = new UniversalSerializer();
+        WriteFile(serializer);
 
         var constants = new ConstantsFile();
         WriteFile(constants);

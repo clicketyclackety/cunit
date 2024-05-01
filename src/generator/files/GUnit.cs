@@ -1,4 +1,5 @@
 using System.Reflection;
+using generators.files;
 using generators.foundations;
 
 namespace generator.units;
@@ -6,22 +7,24 @@ namespace generator.units;
 public class GUnit : IGenerateableFile
 {
     
-    private List<string> lines = new();
+    protected List<string> Lines { get; } = new();
 
-    public readonly string Name;
-    public readonly string Symbol;
+    public string Name {get;}
+    public string Symbol {get;}
     public GUnit Unit => this;
-    public readonly GUnit BaseUnit;
-    public readonly string[] Dimensions;
-    public readonly string Formula;
-    public readonly string Calculation;
+    public GUnit BaseUnit {get;}
+    public string[] Dimensions {get;}
+    public string Formula {get;}
+    public string Calculation {get;}
+    public UnitRange ValidExtensions {get;}
 
     public GUnit(string name,
         string symbol,
         GUnit? baseUnit = null,
         string[]? dimensions = null,
         string formula = "",
-        string calculation = "")
+        string calculation = "",
+        UnitRange? validExtensions = null)
     {
         Name = name;
         Symbol = symbol;
@@ -29,27 +32,28 @@ public class GUnit : IGenerateableFile
         Dimensions = dimensions;
         Formula = formula;
         Calculation = calculation;
+        ValidExtensions = validExtensions ?? ExtensionUnit.None;
     }
 
-    public List<String> Generate()
+    public virtual List<string> Generate()
     {
-        lines.Clear();
-        lines.AddRange(GenerateNamespace());
-        lines.AddRange(GenerateClassDeclaration());
-        lines.AddRange(GenerateClassProperties());
-        lines.AddRange(GenerateConstructors());
-        lines.AddRange(GenerateClassMethods());
-        lines.AddRange(GenerateImplicitOperators());
-        lines.AddRange(GenerateTupleOperators());
-        lines.AddRange(GeneratePlusMinusOperators());
-        lines.AddRange(GenerateMultiplyDivideOperators());
-        lines.AddRange(GeneratePositiveNegativeOperators());
-        lines.AddRange(GenerateGreaterLessThansOperators());
-        lines.AddRange(GenerateEquality());
-        lines.AddRange(GenerateClassFooter());
-        lines.Add(string.Empty);
+        Lines.Clear();
+        Lines.AddRange(GenerateNamespace());
+        Lines.AddRange(GenerateClassDeclaration());
+        Lines.AddRange(GenerateClassProperties());
+        Lines.AddRange(GenerateConstructors());
+        Lines.AddRange(GenerateClassMethods());
+        Lines.AddRange(GenerateImplicitOperators());
+        Lines.AddRange(GenerateTupleOperators());
+        Lines.AddRange(GeneratePlusMinusOperators());
+        Lines.AddRange(GenerateMultiplyDivideOperators());
+        Lines.AddRange(GeneratePositiveNegativeOperators());
+        Lines.AddRange(GenerateGreaterLessThansOperators());
+        Lines.AddRange(GenerateEquality());
+        Lines.AddRange(GenerateClassFooter());
+        Lines.Add(string.Empty);
 
-        return lines;
+        return Lines;
     }
     
     public string GetFilePath()
@@ -81,7 +85,7 @@ public class GUnit : IGenerateableFile
         yield return "/// <summary>";
         yield return $"/// Represents a {Name} Unit.";
         yield return "/// </summary>";
-        yield return $"[JsonConverter(typeof({Name}JsonConverter))]";
+        yield return $"[JsonConverter(typeof(UniversalConverter))]";
         var interfaces = new List<string>()
         {
             $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>",
@@ -95,7 +99,6 @@ public class GUnit : IGenerateableFile
         }
 
         var classDeclaration = $"public readonly struct {Unit.Name} :\n\t\t\t\t";
-
         
         var relatedUnits = Utils.GetRelatedUnits(this).Union(new [] {Unit});
         foreach (var relatedUnit in relatedUnits)
@@ -113,6 +116,11 @@ public class GUnit : IGenerateableFile
     public virtual IEnumerable<string> GenerateClassProperties()
     {
         yield return $"\tprivate readonly int _preComputedHash = -1;";
+        yield return string.Empty;
+
+        yield return "\t/// <summary>The symbol of this <see cref=\"IUnit<T>\"></summary>";
+        yield return $"\tpublic const string Symbol = \"{Unit.Symbol}\";";
+        yield return string.Empty;
         
         // If we have multiple dimensions, this should be more complex
         if (Unit.Dimensions?.Length > 1)
@@ -200,7 +208,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
-    private IEnumerable<string> GenerateClassMethods()
+    public virtual IEnumerable<string> GenerateClassMethods()
     {
         var baseUnit = Unit.BaseUnit ?? Unit;
         
@@ -214,7 +222,7 @@ public class GUnit : IGenerateableFile
     }
     
     // Single Dimensions
-    private IEnumerable<string> GenerateImplicitOperators()
+    public virtual IEnumerable<string> GenerateImplicitOperators()
     {
         yield return "\t#region Operators";
         yield return string.Empty;
@@ -250,7 +258,7 @@ public class GUnit : IGenerateableFile
         }
     }
 
-    private IEnumerable<string> GenerateTupleOperators()
+    public virtual IEnumerable<string> GenerateTupleOperators()
     {
         // Tuple Operators
         if (Unit.Dimensions is not null)
@@ -270,7 +278,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
-    private IEnumerable<string> GeneratePlusMinusOperators()
+    public virtual IEnumerable<string> GeneratePlusMinusOperators()
     {
         yield return "\t#region Mathmatic Operators";
         
@@ -314,7 +322,7 @@ public class GUnit : IGenerateableFile
         }
     }
 
-    private IEnumerable<string> GenerateMultiplyDivideOperators()
+    public virtual IEnumerable<string> GenerateMultiplyDivideOperators()
     {
         yield return string.Empty;
         
@@ -363,7 +371,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
-    private IEnumerable<string> GeneratePositiveNegativeOperators()
+    public virtual IEnumerable<string> GeneratePositiveNegativeOperators()
     {
         // Positive & Negative
         yield return "\t#region Positive / Negative Operators";
@@ -379,7 +387,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
-    private IEnumerable<string> GenerateGreaterLessThansOperators()
+    public virtual IEnumerable<string> GenerateGreaterLessThansOperators()
     {
         yield return "\t#region Greater/Less";
         yield return string.Empty;
@@ -408,7 +416,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
 
-    private IEnumerable<string> GenerateEquality()
+    public virtual IEnumerable<string> GenerateEquality()
     {
         yield return "\t#region Equality";
         yield return string.Empty;
@@ -420,7 +428,7 @@ public class GUnit : IGenerateableFile
         yield return
             $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
         yield return
-            $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}> unit) => Math.Abs((this.ToSI() - unit.ToSI()).Value) <= cunit.Constants.Tolerance;";
+            $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}>? unit) => unit is not null && Math.Abs((this.ToSI() - unit.ToSI()).Value) <= cunit.Constants.Tolerance;";
         yield return
             $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with {Unit.Name} for Equality given a tolerance</summary>";
         yield return
@@ -471,6 +479,9 @@ public class GUnit : IGenerateableFile
 
         yield return $"\tpublic override bool Equals(object? obj) => obj is IUnit<{unitOrBaseUnit}> unit && Equals(unit);";
         yield return string.Empty;
+
+        // TODO : Move to new method
+
         yield return $"\tpublic override string ToString() => ToString(\"G\");";
 
         yield return "\tpublic string ToString(string? format) => ToString(format, CultureInfo.CurrentCulture);";
@@ -478,7 +489,7 @@ public class GUnit : IGenerateableFile
         yield return "\tpublic string ToString(string? format, IFormatProvider? formatProvider)";
         yield return "\t\t=> formatProvider switch {";
         yield return
-            $"\t\t\t_ => $\"{{Value.ToString(format ?? \"G\", formatProvider ?? CultureInfo.CurrentCulture)}} {Unit.Symbol}\",";
+            $"\t\t\t_ => $\"{{Value.ToString(format ?? \"G\", formatProvider ?? CultureInfo.CurrentCulture)}} {{Symbol}}\",";
         yield return "\t\t};";
 
         yield return string.Empty;
@@ -489,7 +500,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
 
-    private IEnumerable<string> GenerateClassFooter()
+    public virtual IEnumerable<string> GenerateClassFooter()
     {
         yield return "}";
         yield return string.Empty;

@@ -41,6 +41,7 @@ public class UnitInterfaceFile : IGenerateableFile
         yield return "    /// <returns>An SI Unit</returns>";
         yield return "    public TSi ToSI();";
         yield return "}";
+        yield return string.Empty;
     }
 
     private IEnumerable<string> GenerateMultiDimensionalInterfaces()
@@ -53,7 +54,7 @@ public class UnitInterfaceFile : IGenerateableFile
 
             var genericItems = names.Select(n => $"{n}Unit");
             string genericNames = string.Join(", ", genericItems);
-            yield return $"public interface IUnit<{genericNames}> : IUnit";
+            yield return $"public interface IUnit<{genericNames}> : IUnit{i}D";
             yield return "{";
             for(int j = 0; j < names.Length; j++)
             {
@@ -62,6 +63,9 @@ public class UnitInterfaceFile : IGenerateableFile
                 yield return $"\tpublic {g}Unit {g}Value {{ get; }}";
             }
             yield return "}";
+            yield return string.Empty;
+
+            yield return $"public interface IUnit{i}D : IUnit {{}}";
             yield return string.Empty;
         }
         
