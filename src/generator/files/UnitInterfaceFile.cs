@@ -1,6 +1,3 @@
-using System.ComponentModel;
-using System.Numerics;
-using System.Reflection;
 using generator.units;
 using generators.foundations;
 
@@ -23,7 +20,7 @@ public class UnitInterfaceFile : IGenerateableFile
         return lines;
     }
 
-    private IEnumerable<string> GenerateBaseInterfaces()
+    private static IEnumerable<string> GenerateBaseInterfaces()
     {
         yield return "namespace cunit;";
         yield return string.Empty;

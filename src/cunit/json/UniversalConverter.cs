@@ -9,8 +9,6 @@ namespace cunit.Json
 
 		public override bool CanConvert(Type typeToConvert) => typeToConvert.GetInterface(nameof(IUnit)) is not null;
 
-		private IUnit Err => new UnknownUnit(0);
-
 		public override IUnit Read(
 			ref Utf8JsonReader reader,
 			Type typeToConvert,
@@ -19,11 +17,11 @@ namespace cunit.Json
 			try
 			{
 				var value = reader.GetString();
-				var parts = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+				var parts = value?.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 				var symbol = parts.Last();
-				var dimensions = parts[0..(parts.Length-1)];
+				var dimensions = parts.Take(parts.Count() -1);
 
-				List<double> dimensionValues = new (dimensions.Length);
+				List<double> dimensionValues = new (dimensions.Count());
 				foreach(var doubleString in dimensions)
 				{
 					if (string.IsNullOrEmpty(doubleString))
@@ -65,15 +63,15 @@ namespace cunit.Json
 					FootCubed.Symbol => new FootCubed(dimensionValues[0], dimensionValues[1], dimensionValues[2]),
 					Second.Symbol => new Second(dimensionValues[0]),
 					MilliSecond.Symbol => new MilliSecond(dimensionValues[0]),
+					Minute.Symbol => new Minute(dimensionValues[0]),
 					Hour.Symbol => new Hour(dimensionValues[0]),
 					Day.Symbol => new Day(dimensionValues[0]),
 					Week.Symbol => new Week(dimensionValues[0]),
-					MetersPerSecond.Symbol => new MetersPerSecond(dimensionValues[0], dimensionValues[1]),
-					Acceleration.Symbol => new Acceleration(dimensionValues[0], dimensionValues[1], dimensionValues[2]),
 					Kelvin.Symbol => new Kelvin(dimensionValues[0]),
 					Celsius.Symbol => new Celsius(dimensionValues[0]),
 					Fahrenheit.Symbol => new Fahrenheit(dimensionValues[0]),
 					Kilogram.Symbol => new Kilogram(dimensionValues[0]),
+					Milligram.Symbol => new Milligram(dimensionValues[0]),
 					Gram.Symbol => new Gram(dimensionValues[0]),
 					Tonne.Symbol => new Tonne(dimensionValues[0]),
 					Ounce.Symbol => new Ounce(dimensionValues[0]),
@@ -83,11 +81,10 @@ namespace cunit.Json
 					Mole.Symbol => new Mole(dimensionValues[0]),
 					Byte.Symbol => new Byte(dimensionValues[0]),
 					Bit.Symbol => new Bit(dimensionValues[0]),
-					KiloByte.Symbol => new KiloByte(dimensionValues[0]),
-					MegaByte.Symbol => new MegaByte(dimensionValues[0]),
-					GigaByte.Symbol => new GigaByte(dimensionValues[0]),
-					UnknownUnit.Symbol => new UnknownUnit(dimensionValues[0]),
-					_ => Err
+					Kilobyte.Symbol => new Kilobyte(dimensionValues[0]),
+					Megabyte.Symbol => new Megabyte(dimensionValues[0]),
+					Gigabyte.Symbol => new Gigabyte(dimensionValues[0]),
+					_ => UnknownUnit.Err
 				};
 
 				return typeToConvert.Name switch
@@ -114,15 +111,15 @@ namespace cunit.Json
 					nameof(FootCubed) => (FootCubed)foundUnit,
 					nameof(Second) => (Second)foundUnit,
 					nameof(MilliSecond) => (MilliSecond)foundUnit,
+					nameof(Minute) => (Minute)foundUnit,
 					nameof(Hour) => (Hour)foundUnit,
 					nameof(Day) => (Day)foundUnit,
 					nameof(Week) => (Week)foundUnit,
-					nameof(MetersPerSecond) => (MetersPerSecond)foundUnit,
-					nameof(Acceleration) => (Acceleration)foundUnit,
 					nameof(Kelvin) => (Kelvin)foundUnit,
 					nameof(Celsius) => (Celsius)foundUnit,
 					nameof(Fahrenheit) => (Fahrenheit)foundUnit,
 					nameof(Kilogram) => (Kilogram)foundUnit,
+					nameof(Milligram) => (Milligram)foundUnit,
 					nameof(Gram) => (Gram)foundUnit,
 					nameof(Tonne) => (Tonne)foundUnit,
 					nameof(Ounce) => (Ounce)foundUnit,
@@ -132,17 +129,16 @@ namespace cunit.Json
 					nameof(Mole) => (Mole)foundUnit,
 					nameof(Byte) => (Byte)foundUnit,
 					nameof(Bit) => (Bit)foundUnit,
-					nameof(KiloByte) => (KiloByte)foundUnit,
-					nameof(MegaByte) => (MegaByte)foundUnit,
-					nameof(GigaByte) => (GigaByte)foundUnit,
-					nameof(UnknownUnit) => (UnknownUnit)foundUnit,
-					_ => Err
+					nameof(Kilobyte) => (Kilobyte)foundUnit,
+					nameof(Megabyte) => (Megabyte)foundUnit,
+					nameof(Gigabyte) => (Gigabyte)foundUnit,
+					_ => UnknownUnit.Err
 				};
 
 			}
 			catch
 			{
-				return Err;
+				return UnknownUnit.Err;
 			}
 		}
 
@@ -175,15 +171,15 @@ namespace cunit.Json
 				FootCubed => FootCubed.Symbol,
 				Second => Second.Symbol,
 				MilliSecond => MilliSecond.Symbol,
+				Minute => Minute.Symbol,
 				Hour => Hour.Symbol,
 				Day => Day.Symbol,
 				Week => Week.Symbol,
-				MetersPerSecond => MetersPerSecond.Symbol,
-				Acceleration => Acceleration.Symbol,
 				Kelvin => Kelvin.Symbol,
 				Celsius => Celsius.Symbol,
 				Fahrenheit => Fahrenheit.Symbol,
 				Kilogram => Kilogram.Symbol,
+				Milligram => Milligram.Symbol,
 				Gram => Gram.Symbol,
 				Tonne => Tonne.Symbol,
 				Ounce => Ounce.Symbol,
@@ -193,10 +189,9 @@ namespace cunit.Json
 				Mole => Mole.Symbol,
 				Byte => Byte.Symbol,
 				Bit => Bit.Symbol,
-				KiloByte => KiloByte.Symbol,
-				MegaByte => MegaByte.Symbol,
-				GigaByte => GigaByte.Symbol,
-				UnknownUnit => UnknownUnit.Symbol,
+				Kilobyte => Kilobyte.Symbol,
+				Megabyte => Megabyte.Symbol,
+				Gigabyte => Gigabyte.Symbol,
 				_ => UnknownUnit.Symbol
 			};
 

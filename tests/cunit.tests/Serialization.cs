@@ -72,9 +72,7 @@ public class Serialization
             yield return new Inch(60);
             yield return new Millimeter(75.45);
             yield return new InchSquared(2, 5);
-            yield return new MetersPerSecond(50.2, 20);
             yield return new MeterCubed(65, 76, 90);
-            yield return new Acceleration(2, 5.3245, 4);
             yield return new Ampere(254.653);
             yield return new Week(254.653);
         }
@@ -87,7 +85,6 @@ public class Serialization
             yield return new Meter[]  { 1, 2,3 ,4,5 , 500 };
             yield return new MeterCubed[]  { 1, 2,3 ,4,5 , 500 };
             yield return new HashSet<InchSquared>  { 1, 2,3 ,4,5 , 500 };
-            // yield return new Dictionary<int, Acceleration>  { {1, 20}, {2, 40}, {3, 60}, {4, 70}}; // Fails
             yield return new List<Inch>  { 1, 2,3 ,4,5 , 500 };
             yield return new Week[]  { 1, 2,3 ,4,5 , 500 };
         }

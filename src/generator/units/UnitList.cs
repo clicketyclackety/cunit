@@ -94,24 +94,19 @@ public static class UnitList
         yield return second;
         
         // TODO : Extension method that converts a thing to a MiliThing or ExaThing?
-        yield return new GUnit("MilliSecond", "ms", second, calculation: "<vV> * 1000");
-        yield return new GUnit("Hour", "H", second, calculation: "<vV> / 60");
-        yield return new GUnit("Day", "D", second, calculation: "<vV> / 60 * 24");
-        yield return new GUnit("Week", "W", second, calculation: "<vV> / 60 * 24 * 7");
-
-        // TODO : This is quite weird. Replace complexities with DateTime
-        /*
-        yield return new GUnit("LeapYear", "H", second, calculation: "<vV> / ((60 * 24 * 7 * 52) + 1)");
-        yield return new GUnit("AverageYear", "H", second, calculation: "<vV> / ((60 * 24 * 7 * 52) + 0.25)");
-        yield return new GUnit("StandardYear", "H", second, calculation: "<vV> / 60 * 24 * 7 * 52");
-        */
+        yield return new GUnit("MilliSecond", "ms", second, calculation: "<vV> / 1000");
+        yield return new GUnit("Minute", "M", second, calculation: "<vV> * 60");
+        yield return new GUnit("Hour", "H", second, calculation: "<vV> * 60 * 60");
+        yield return new GUnit("Day", "D", second, calculation: "<vV> * 60 * 60 * 24");
+        yield return new GUnit("Week", "W", second, calculation: "<vV> * 60 * 60 * 24 * 7");
         
         #endregion
         
         #region HYBRID UNITS
 
-        yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}", null, new[] { meter.Name, second.Name }, formula:"<0> / <1>");
-        yield return new GUnit("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, formula:"<0> / (<1> * <1>)");
+        // TODO : Resolve Hybrid Units
+        // yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name }, formula:"<1> / <1>");
+        // yield return new GUnit("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, formula:"<0> / (<1> * <1>)");
 
         #endregion
         
@@ -127,12 +122,12 @@ public static class UnitList
         # region MASS
         var kilo = new GUnit("Kilogram", "Kg");
         yield return kilo;
-        // yield return new GUnit("MilliGram", "g", kilo, calculation: "<vV> * 0.001 * 0.001");
-        yield return new GUnit("Gram", "g", kilo, calculation: "<vV> * 0.001");
-        yield return new GUnit("Tonne", "T", kilo, calculation: "<vV> * 1000");
+        yield return new GUnit("Milligram", "mg", kilo, calculation: "<vV> * 1000 * 1000");
+        yield return new GUnit("Gram", "g", kilo, calculation: "<vV> * 1000");
+        yield return new GUnit("Tonne", "T", kilo, calculation: "<vV> * 0.001");
 
-        yield return new GUnit("Ounce", "oz", kilo, calculation: "<vV> * 0.02834952");
-        yield return new GUnit("Pound", "lb", kilo, calculation: "<vV> * 0.02834952 / 16");
+        yield return new GUnit("Ounce", "oz", kilo, calculation: "<vV> * 35.2739619");
+        yield return new GUnit("Pound", "lb", kilo, calculation: "<vV> * 2.204623");
         
         #endregion
         
@@ -147,48 +142,15 @@ public static class UnitList
         var @byte = new GUnit("Byte", "B");
         yield return @byte;
         
-        yield return new GUnit("Bit", "b", @byte, calculation:"<vV> / 8");
+        yield return new GUnit("Bit", "b", @byte, calculation:"<vV> * 8");
         
-        yield return new GUnit("KiloByte", "KB", @byte, calculation:"<vV> * 1024");
-        yield return new GUnit("MegaByte", "MB", @byte, calculation:"<vV> * 1024 * 1024");
-        yield return new GUnit("GigaByte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024");
-
-
-        yield return new GUnit("UnknownUnit", "UN");
+        yield return new GUnit("Kilobyte", "KB", @byte, calculation:"<vV> * 1024");
+        yield return new GUnit("Megabyte", "MB", @byte, calculation:"<vV> * 1024 * 1024");
+        yield return new GUnit("Gigabyte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024");
         
         #endregion
 
         yield break;
-
-
-        // TODO : Not found to be viable
-        #region Extensions
-
-        // Iterate unit extensions // Maybe move Units into Extension unit?
-        yield return new ExtensionUnit("Yotta", 1E24, "Y");
-        yield return new ExtensionUnit("Zetta", 1E21, "Z");
-        yield return new ExtensionUnit("Exa", 1E19, "E");
-        yield return new ExtensionUnit("Peta", 1E15, "P");
-        yield return new ExtensionUnit("Tera", 1E12, "T");
-        yield return new ExtensionUnit("Giga", 1E9, "G");
-        yield return new ExtensionUnit("Mega", 1E6, "M");
-        yield return new ExtensionUnit("Kilo", 1E3, "k");
-        yield return new ExtensionUnit("Hecto", 1E2, "h");
-        yield return new ExtensionUnit("Deca", 1E1, "da");
-        // 1E0
-        yield return new ExtensionUnit("Deci", 1E-1, "d");
-        yield return new ExtensionUnit("Centi", 1E-2, "c");
-        yield return new ExtensionUnit("Milli", 1E-3, "m");
-        yield return new ExtensionUnit("Micro", 1E-6, "µ");
-        yield return new ExtensionUnit("Pico", 1E-9, "n");
-        yield return new ExtensionUnit("Nano", 1E-12, "p");
-        yield return new ExtensionUnit("Femto", 1E-15, "f");
-        yield return new ExtensionUnit("Atto", 1E-18, "a");
-        yield return new ExtensionUnit("Zepto", 1E-21, "z");
-        yield return new ExtensionUnit("Yokto", 1E-24, "y");
-
-        #endregion
-
     }
 
 }

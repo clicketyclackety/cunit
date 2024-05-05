@@ -16,15 +16,13 @@ public class GUnit : IGenerateableFile
     public string[] Dimensions {get;}
     public string Formula {get;}
     public string Calculation {get;}
-    public UnitRange ValidExtensions {get;}
 
     public GUnit(string name,
         string symbol,
         GUnit? baseUnit = null,
         string[]? dimensions = null,
         string formula = "",
-        string calculation = "",
-        UnitRange? validExtensions = null)
+        string calculation = "")
     {
         Name = name;
         Symbol = symbol;
@@ -32,7 +30,6 @@ public class GUnit : IGenerateableFile
         Dimensions = dimensions;
         Formula = formula;
         Calculation = calculation;
-        ValidExtensions = validExtensions ?? ExtensionUnit.None;
     }
 
     public virtual List<string> Generate()
@@ -40,6 +37,7 @@ public class GUnit : IGenerateableFile
         Lines.Clear();
         Lines.AddRange(GenerateNamespace());
         Lines.AddRange(GenerateClassDeclaration());
+        Lines.AddRange(GenerateClassConstants());
         Lines.AddRange(GenerateClassProperties());
         Lines.AddRange(GenerateConstructors());
         Lines.AddRange(GenerateClassMethods());
@@ -55,7 +53,14 @@ public class GUnit : IGenerateableFile
 
         return Lines;
     }
-    
+
+    private IEnumerable<string> GenerateClassConstants()
+    {
+        yield return $"\t/// <summary>The symbol of this <see cref=\"{Unit.Name}\"></summary>";
+        yield return $"\tpublic const string Symbol = \"{Unit.Symbol}\";";
+        yield return string.Empty;
+    }
+
     public string GetFilePath()
     {
         Assembly assembly = typeof(GUnit).Assembly;
@@ -83,7 +88,7 @@ public class GUnit : IGenerateableFile
     public virtual IEnumerable<string> GenerateClassDeclaration()
     {
         yield return "/// <summary>";
-        yield return $"/// Represents a {Name} Unit.";
+        yield return $"/// Represents a <see cref=\"{Name}\"/> Unit.";
         yield return "/// </summary>";
         yield return $"[JsonConverter(typeof(UniversalConverter))]";
         var interfaces = new List<string>()
@@ -117,10 +122,6 @@ public class GUnit : IGenerateableFile
     {
         yield return $"\tprivate readonly int _preComputedHash = -1;";
         yield return string.Empty;
-
-        yield return "\t/// <summary>The symbol of this <see cref=\"IUnit<T>\"></summary>";
-        yield return $"\tpublic const string Symbol = \"{Unit.Symbol}\";";
-        yield return string.Empty;
         
         // If we have multiple dimensions, this should be more complex
         if (Unit.Dimensions?.Length > 1)
@@ -131,19 +132,19 @@ public class GUnit : IGenerateableFile
             
             yield return string.Empty;
             
-            yield return "\t/// <summary>The numeric value of this unit</summary>";
+            yield return $"\t/// <summary>The numeric value of this <see cref=\"{Unit.Name}\"/></summary>";
             yield return $"\tpublic readonly {Numerics.NumberType} Value => _preComputedValue;";
             yield return string.Empty;
             
             foreach(var pair in Generics.GetUnitTypeParameterPairs(this))
             {
-                yield return "\t/// <summary>The value of this unit</summary>";
+                yield return $"\t/// <summary>The value of this <see cref=\"{Unit.Name}\"/></summary>";
                 yield return $"\tpublic {pair.Dim} {pair.Param} {{ get; }} = 1;";
             }
         }
         else
         {
-            yield return $"\t/// <summary>The {Numerics.NumberType} value of this unit</summary>";
+            yield return $"\t/// <summary>The <see cref=\"{Numerics.NumberType}\"/> value of this unit</summary>";
             yield return $"\tpublic {Numerics.NumberType} Value {{ get; }} = 1;";
         }
         
@@ -152,7 +153,7 @@ public class GUnit : IGenerateableFile
     
     public virtual IEnumerable<string> GenerateConstructors()
     {
-        yield return $"\t/// <summary>Creates a new instance of a {Unit.Name}</summary>";
+        yield return $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/></summary>";
         if (Unit.Dimensions?.Length > 1)
         {
             string[] paramNames = Generics.GetUnitParameterNames(this);
@@ -172,7 +173,7 @@ public class GUnit : IGenerateableFile
             yield return "\t{ }";
             yield return string.Empty;
             
-            yield return $"\t/// <summary>Creates a new instance of a {Unit.Name}</summary>";
+            yield return $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/></summary>";
             
             // SECOND CONSTRUCTOR
             List<string> paramPair = new List<string>();
@@ -214,7 +215,7 @@ public class GUnit : IGenerateableFile
         
         yield return "\t#region Methods";
         yield return string.Empty;
-        yield return "\t/// <summary>Converts a unit to SI</summary>";
+        yield return "\t/// <summary>Converts this unit to SI. Note that this unit may already be SI</summary>";
         yield return $"\tpublic {baseUnit.Name} ToSI() => ({baseUnit.Name})this;";
         yield return string.Empty;
         yield return "\t#endregion";
@@ -231,17 +232,17 @@ public class GUnit : IGenerateableFile
         yield return "\t#region Casting";
         yield return string.Empty;
         
-        yield return $"\t/// <summary>Converts a {Numerics.NumberType} into this Unit.</summary>";
+        yield return $"\t/// <summary>Converts a <see cref=\"{Numerics.NumberType}\"/> into this <see cref=\"{Unit.Name}\"/>.</summary>";
         yield return $"\tpublic static implicit operator {Unit.Name}({Numerics.NumberType} value) => new (value);";
         yield return string.Empty;
 
         if (Unit.BaseUnit is not null)
         {
-            yield return $"\t/// <summary>Converts {Unit.BaseUnit.Name} into this Unit.</summary>";
+            yield return $"\t/// <summary>Converts <see cref=\"{Unit.BaseUnit.Name}\"/> into this <see cref=\"{Unit.Name}\"/>.</summary>";
             yield return $"\tpublic static implicit operator {Unit.BaseUnit.Name}({Unit.Name} value) => new (({Calculations.FormatCalculation(Unit.Calculation)}));";
             yield return string.Empty;
             
-            yield return $"\t/// <summary>Converts {Unit.Name} into {Unit.BaseUnit.Name}.</summary>";
+            yield return $"\t/// <summary>Converts <see cref=\"{Unit.Name}\"/> into <see cref=\"{Unit.BaseUnit.Name}\"/>.</summary>";
             yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new (({Calculations.InvertCalculation(Calculations.FormatCalculation(Unit.Calculation))}));";
             yield return string.Empty;
 
@@ -250,7 +251,7 @@ public class GUnit : IGenerateableFile
                 if (r == Unit.BaseUnit)
                     continue;
                 
-                yield return $"\t/// <summary>Converts {Unit.Name} into {r.Name}.</summary>";
+                yield return $"\t/// <summary>Converts <see cref=\"{Unit.Name}\"/> into {r.Name}.</summary>";
                 yield return
                     $"\tpublic static implicit operator {Unit.Name}({r.Name} value) => value.ToSI();";
                 yield return string.Empty;
@@ -426,16 +427,16 @@ public class GUnit : IGenerateableFile
         string unitOrBaseUnit = (Unit.BaseUnit ?? Unit).Name;
         
         yield return
-            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for Equality (Constants Tolerance used)</summary>";
+            $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{Unit.Name}\"/> for Equality (Constants Tolerance used)</summary>";
         yield return
             $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}>? unit) => unit is not null && Math.Abs((this.ToSI() - unit.ToSI()).Value) <= cunit.Constants.Tolerance;";
         yield return
-            $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with {Unit.Name} for Equality given a tolerance</summary>";
+            $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with <see cref=\"{Unit.Name}\"/> for Equality given a tolerance</summary>";
         yield return
             $"\tpublic bool EpsilonEquals(IUnit<{unitOrBaseUnit}> unit, double tolerance) => Math.Abs((this.ToSI() - unit.ToSI()).Value) <= tolerance;";
     
         yield return
-            $"\t/// <summary>Compares an object with another {Unit.Name} for equality (no tolerance used)</summary>";
+            $"\t/// <summary>Compares an object with another <see cref=\"{Unit.Name}\"/> for equality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator ==(IUnit<{unitOrBaseUnit}> left, {Unit.Name} right)" +
                      $" => left.Equals(right);";
         yield return
@@ -444,11 +445,11 @@ public class GUnit : IGenerateableFile
             $"\tpublic static bool operator !=(object left, {Unit.Name} right) => !(left == right);";
 
         yield return
-            $"\t/// <summary>Compares an object with another {Unit.Name} for equality (no tolerance used)</summary>";
+            $"\t/// <summary>Compares an object with another <see cref=\"{Unit.Name}\"/> for equality (no tolerance used)</summary>";
         yield return $"\tpublic static bool operator ==(object left, {Unit.Name} right)" +
                      $" => left is IUnit<{unitOrBaseUnit}> unit && unit.Equals(right);";
         yield return
-            $"\t/// <summary>Compares this {Unit.Name} with another {Unit.Name} for inequality (no tolerance used)</summary>";
+            $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{Unit.Name}\"/> for inequality (no tolerance used)</summary>";
         yield return
             $"\tpublic static bool operator !=(IUnit<{unitOrBaseUnit}> left, {Unit.Name} right) => !(left == right);";
 
@@ -457,17 +458,17 @@ public class GUnit : IGenerateableFile
         foreach (var relatedUnit in Utils.GetRelatedUnits(Unit).Union(new []{ Unit }))
         {
             yield return
-                $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for equality (no tolerance used)</summary>";
+                $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{relatedUnit.Name}\"/> for equality (no tolerance used)</summary>";
             yield return $"\tpublic static bool operator ==({Unit.Name} left, {relatedUnit.Name} right)" +
                          $" => left.Equals(right);";
 
-            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for inequality (no tolerance used)</summary>";
+            yield return $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{relatedUnit.Name}\"/> for inequality (no tolerance used)</summary>";
             yield return $"\tpublic static bool operator !=({Unit.Name} left, {relatedUnit.Name} right) => !(left == right);";
 
             var calc = Unit.BaseUnit is null ? "this - unit" : "unit - this";
-            yield return $"\t/// <summary>Compares this {Unit.Name} with another {relatedUnit.Name} for Equality (Constants Tolerance used)</summary>";
+            yield return $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{relatedUnit.Name}\"/> for Equality (Constants Tolerance used)</summary>";
             yield return $"\tpublic bool Equals({relatedUnit.Name} unit) => Math.Abs(({calc}).Value) <= cunit.Constants.Tolerance;";
-            yield return $"\t/// <summary>Compares {Unit.Name} with {relatedUnit.Name} for Equality given a tolerance</summary>";
+            yield return $"\t/// <summary>Compares <see cref=\"{Unit.Name}\"/> with {relatedUnit.Name} for Equality given a tolerance</summary>";
             yield return $"\tpublic bool EpsilonEquals({relatedUnit.Name} unit, double tolerance) => Math.Abs(({calc}).Value) <= tolerance;";
             
             yield return string.Empty;

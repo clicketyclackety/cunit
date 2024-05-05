@@ -1,3 +1,4 @@
+using generator;
 using generator.files;
 using generator.units;
 
@@ -8,6 +9,8 @@ internal sealed class Writer
     
     public void Write()
     {
+        var csproj = new CsProj();
+        WriteFile(csproj);
         
         var matrixUnits = UnitList.GetUnits();
         foreach(var unit in matrixUnits)
@@ -23,6 +26,9 @@ internal sealed class Writer
 
         var interfaceFile = new UnitInterfaceFile();
         WriteFile(interfaceFile);
+
+        var unknownUnit = new UnknownUnit();
+        WriteFile(unknownUnit);
     }
 
     private void WriteFile(IGenerateableFile generatable)

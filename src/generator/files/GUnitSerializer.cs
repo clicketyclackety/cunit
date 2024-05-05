@@ -1,4 +1,3 @@
-using System.Reflection;
 using generator.files;
 using generators.foundations;
 
@@ -28,8 +27,6 @@ public class UniversalSerializer : IGenerateableFile
         yield return string.Empty;
         yield return "\t\tpublic override bool CanConvert(Type typeToConvert) => typeToConvert.GetInterface(nameof(IUnit)) is not null;";
         yield return string.Empty;
-        yield return "\t\tprivate IUnit Err => new UnknownUnit(0);";
-        yield return string.Empty;
         yield return "\t\tpublic override IUnit Read(";
         yield return "\t\t\tref Utf8JsonReader reader,";
         yield return "\t\t\tType typeToConvert,";
@@ -38,11 +35,11 @@ public class UniversalSerializer : IGenerateableFile
         yield return "\t\t\ttry";
         yield return "\t\t\t{";
         yield return "\t\t\t\tvar value = reader.GetString();";
-        yield return "\t\t\t\tvar parts = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();";
+        yield return "\t\t\t\tvar parts = value?.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();";
         yield return "\t\t\t\tvar symbol = parts.Last();";
-        yield return "\t\t\t\tvar dimensions = parts[0..(parts.Length-1)];";
+        yield return "\t\t\t\tvar dimensions = parts.Take(parts.Count() -1);";
         yield return string.Empty;
-        yield return "\t\t\t\tList<double> dimensionValues = new (dimensions.Length);";
+        yield return "\t\t\t\tList<double> dimensionValues = new (dimensions.Count());";
         yield return "\t\t\t\tforeach(var doubleString in dimensions)";
         yield return "\t\t\t\t{";
         yield return "\t\t\t\t\tif (string.IsNullOrEmpty(doubleString))";
@@ -71,7 +68,7 @@ public class UniversalSerializer : IGenerateableFile
             yield return $"\t\t\t\t\t{unit.Name}.Symbol => new {unit.Name}({args}),";
         }
 
-        yield return "\t\t\t\t\t_ => Err";
+        yield return "\t\t\t\t\t_ => UnknownUnit.Err";
         yield return "\t\t\t\t};";
 
         yield return string.Empty;
@@ -83,13 +80,13 @@ public class UniversalSerializer : IGenerateableFile
             yield return $"\t\t\t\t\tnameof({unit.Name}) => ({unit.Name})foundUnit,";
         }
 
-        yield return "\t\t\t\t\t_ => Err";
+        yield return "\t\t\t\t\t_ => UnknownUnit.Err";
         yield return "\t\t\t\t};";
         yield return string.Empty;
         yield return "\t\t\t}";
         yield return "\t\t\tcatch";
         yield return "\t\t\t{";
-        yield return "\t\t\t\treturn Err;";
+        yield return "\t\t\t\treturn UnknownUnit.Err;";
         yield return "\t\t\t}";
         yield return "\t\t}";
         yield return string.Empty;
