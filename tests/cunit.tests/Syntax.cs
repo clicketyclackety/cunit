@@ -6,23 +6,19 @@ public class Tests
 {
 
     [Test]
-    public void ComplexCalculation()
+    public void ComplexCalculations()
     {
-        // KilogramPerMeterCubed kgpm = 200kg * 200 * 400 * 50;
+        KilogramPerMeterCubed kgpm = 200 * 200 * 400 * 50;
 
         Meter m1 = 200;
         Meter m2 = 100;
         Meter m3 = 50;
+        Kilogram kg = 50;
         
-        var result = ((m1 + m2) * m3) / (m2++) * (m3 % 20) / (--m1);
-
-
+        var result = ((m1 + m2) * m3) / (m2++) * (m3 % 20) / (--m1) * m2 * m1 * kg;
 
         MeterCubed m4 = m1 * m2 * m3;
-        Kilogram kg = 50;
         var kgPm = m4 * kg;
-
-
     }
 
     [Test]

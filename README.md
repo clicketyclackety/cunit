@@ -16,7 +16,7 @@ Kelvin k = (c - f) * 2;
 ```
 We quickly see that cunit is designed to work like, and alongside doubles. There are no methods to convert one measurement into another, it happens seamlessly. The only thing cunit **does not do implictly** cast to is a double. You must explicitly call `myUnit.Value` as an example. I believe casting these units to doubles implicitly could cause issues in calculations, and I'd rather avoid that.
 
-Here's a more complex example, that showcases all of the available operations cunit offers.
+Here's a more complex example, that showcases many of the available operations cunit offers.
 ```csharp
 Meter m1 = 200;
 Meter m2 = 100;
@@ -31,7 +31,7 @@ For more syntax examples, see this test class [Syntax](https://github.com/clicke
 
 
 # Serializing
-cunit has native `System.Text.Json` support, you can serialize and deserialize any unit with ease. It also has support for `Newtonsoft.Json`.
+cunit has native `System.Text.Json` support as well as support for `Newtonsoft.Json`, you can serialize and deserialize any unit with ease.
 ``` csharp
 Kilogram kg = 2;
 var json = JsonSerializer.Serialize(kg);

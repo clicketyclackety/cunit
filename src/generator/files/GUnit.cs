@@ -398,18 +398,35 @@ public class GUnit : IGenerateableFile
     }
     
     public virtual IEnumerable<string> GenerateModuloOperators()
-    {   
-        if (Unit.Dimensions is null)
+    { 
+        yield return "\t#region Modulo";
+        yield return string.Empty;
+        
+        yield return $"\tpublic static {Unit.Name} operator %({Unit.Name} left, {Numerics.NumberType} right)" +
+                     $"=> left.Value % right;";
+        yield return $"\tpublic static {Unit.Name} operator %({Numerics.NumberType} left, {Unit.Name} right)" +
+                     $"=> left % right.Value;";
+     
+        var unitPairs = Utils.GetBuildPieces(Unit);   
+        foreach (var unitPair in unitPairs)
         {
+            if (unitPair.Count < 2)
+                continue;
             
-            yield return "\t#region Increment Decrement";
-            yield return string.Empty;
+            yield return
+                $"\tpublic static {unitPair[0].Name} operator %({Unit.Name} left, {unitPair[1].Name} right)" +
+                $" => left.Value % right.Value;";
 
-            yield return $"\tpublic static {Unit.Name} operator %({Unit.Name} unit, {Numerics.NumberType} number) => new (unit.Value % number);";
+            if (unitPair[0] == unitPair[1])
+                continue;
             
-            yield return string.Empty;
-            yield return "\t#endregion";
+            yield return
+                $"\tpublic static {unitPair[1].Name} operator %({Unit.Name} left, {unitPair[0].Name} right)" +
+                $" => left.Value % right.Value;";
         }
+
+        yield return string.Empty;
+        yield return "\t#endregion";
     }
 
     public virtual IEnumerable<string> GeneratePositiveNegativeOperators()
