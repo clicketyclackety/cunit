@@ -46,6 +46,8 @@ public class GUnit : IGenerateableFile
         Lines.AddRange(GeneratePlusMinusOperators());
         Lines.AddRange(GenerateMultiplyDivideOperators());
         Lines.AddRange(GeneratePositiveNegativeOperators());
+        Lines.AddRange(GenerateIncrementDecrementOperators());
+        Lines.AddRange(GenerateModuloOperators());
         Lines.AddRange(GenerateGreaterLessThansOperators());
         Lines.AddRange(GenerateEquality());
         Lines.AddRange(GenerateClassFooter());
@@ -138,7 +140,7 @@ public class GUnit : IGenerateableFile
             
             foreach(var pair in Generics.GetUnitTypeParameterPairs(this))
             {
-                yield return $"\t/// <summary>The value of this <see cref=\"{Unit.Name}\"/></summary>";
+                yield return $"\t/// <summary>The value of this <see cref=\"{pair.Dim}\"/></summary>";
                 yield return $"\tpublic {pair.Dim} {pair.Param} {{ get; }} = 1;";
             }
         }
@@ -362,8 +364,13 @@ public class GUnit : IGenerateableFile
             if (setPair.Count < 2)
                 continue;
 
+            var leftUnit = setPair[1].Name;
+            var rightUnit = setPair[2].Name;
+
+            if (leftUnit != Unit.Name && rightUnit != Unit.Name) continue;
+
             yield return
-                $"\tpublic static {setPair[0].Name} operator *({setPair[1].Name} left, {setPair[2].Name} right)" +
+                $"\tpublic static {setPair[0].Name} operator *({leftUnit} left, {rightUnit} right)" +
                 $" => left.Value / right.Value;";
         }
 
@@ -372,6 +379,39 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
+    public virtual IEnumerable<string> GenerateIncrementDecrementOperators()
+    {   
+        if (Unit.Dimensions is null)
+        {
+
+            yield return "\t#region Increment Decrement";
+            yield return string.Empty;
+
+            yield return $"\tpublic static {Unit.Name} operator ++({Unit.Name} unit) => new (unit.Value + 1);";
+            yield return string.Empty;
+            yield return $"\tpublic static {Unit.Name} operator --({Unit.Name} unit) => new (unit.Value - 1);";
+            
+            yield return string.Empty;
+            yield return "\t#endregion";
+
+        }
+    }
+    
+    public virtual IEnumerable<string> GenerateModuloOperators()
+    {   
+        if (Unit.Dimensions is null)
+        {
+            
+            yield return "\t#region Increment Decrement";
+            yield return string.Empty;
+
+            yield return $"\tpublic static {Unit.Name} operator %({Unit.Name} unit, {Numerics.NumberType} number) => new (unit.Value % number);";
+            
+            yield return string.Empty;
+            yield return "\t#endregion";
+        }
+    }
+
     public virtual IEnumerable<string> GeneratePositiveNegativeOperators()
     {
         // Positive & Negative

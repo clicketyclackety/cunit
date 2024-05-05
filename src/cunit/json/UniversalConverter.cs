@@ -84,6 +84,7 @@ namespace cunit.Json
 					Kilobyte.Symbol => new Kilobyte(dimensionValues[0]),
 					Megabyte.Symbol => new Megabyte(dimensionValues[0]),
 					Gigabyte.Symbol => new Gigabyte(dimensionValues[0]),
+					KilogramPerMeterCubed.Symbol => new KilogramPerMeterCubed(dimensionValues[0], dimensionValues[1], dimensionValues[2], dimensionValues[3]),
 					_ => UnknownUnit.Err
 				};
 
@@ -132,6 +133,7 @@ namespace cunit.Json
 					nameof(Kilobyte) => (Kilobyte)foundUnit,
 					nameof(Megabyte) => (Megabyte)foundUnit,
 					nameof(Gigabyte) => (Gigabyte)foundUnit,
+					nameof(KilogramPerMeterCubed) => (KilogramPerMeterCubed)foundUnit,
 					_ => UnknownUnit.Err
 				};
 
@@ -192,6 +194,7 @@ namespace cunit.Json
 				Kilobyte => Kilobyte.Symbol,
 				Megabyte => Megabyte.Symbol,
 				Gigabyte => Gigabyte.Symbol,
+				KilogramPerMeterCubed => KilogramPerMeterCubed.Symbol,
 				_ => UnknownUnit.Symbol
 			};
 

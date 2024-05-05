@@ -1,7 +1,29 @@
+using System.Numerics;
+
 namespace cunit.tests;
 
 public class Tests
 {
+
+    [Test]
+    public void ComplexCalculation()
+    {
+        // KilogramPerMeterCubed kgpm = 200kg * 200 * 400 * 50;
+
+        Meter m1 = 200;
+        Meter m2 = 100;
+        Meter m3 = 50;
+        
+        var result = ((m1 + m2) * m3) / (m2++) * (m3 % 20) / (--m1);
+
+
+
+        MeterCubed m4 = m1 * m2 * m3;
+        Kilogram kg = 50;
+        var kgPm = m4 * kg;
+
+
+    }
 
     [Test]
     public void TestMeter()

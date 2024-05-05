@@ -31,6 +31,9 @@ public static class UnitList
 
     public static GUnit GetUnit(string name) => units[name];
 
+    // TODO : % operator
+    // TODO : --
+    // TODO : ++
     private static IEnumerable<GUnit> getUnits()
     {
         // what is it
@@ -102,14 +105,6 @@ public static class UnitList
         
         #endregion
         
-        #region HYBRID UNITS
-
-        // TODO : Resolve Hybrid Units
-        // yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name }, formula:"<1> / <1>");
-        // yield return new GUnit("Acceleration", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name, second.Name }, formula:"<0> / (<1> * <1>)");
-
-        #endregion
-        
         #region TEMPERATURE
         
         var kelvin = new GUnit("Kelvin", "K");
@@ -148,6 +143,14 @@ public static class UnitList
         yield return new GUnit("Megabyte", "MB", @byte, calculation:"<vV> * 1024 * 1024");
         yield return new GUnit("Gigabyte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024");
         
+        #endregion
+        
+        #region HYBRID UNITS
+
+        // TODO : Resolve Hybrid Units
+        // yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name }, formula:"<1> / <1>");
+        yield return new GUnit("KilogramPerMeterCubed", "kg/m3", null, new[] { meter.Name, meter.Name, meter.Name, kilo.Name }, formula:"<0> * <1> * <2> / <3>",  calculation:"<vV> / 0");
+
         #endregion
 
         yield break;

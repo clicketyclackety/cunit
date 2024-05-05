@@ -1,13 +1,10 @@
-# Pre-Preamble
-cunit, much like myself, is a work in progress. It shouldn't be considered a stable API yet, and for a lot of the code (currently) it's not correct. If you would like to help cunit get to that stage, please read the contributing section.
-
 # Preamble
 cunit is a general units library for C#. I've found other unit libraries to have the following issues that have always bothered me;
 - Large (1-2mb+)
-- Long, inefficient syntax
+- Ineligant syntax
 - Hard to use
-- Class based, introducing nullables into maths 🤢
-- Mutable
+- Use of Mutable and nullables
+- Too many unecessary units
 
 As such cunit is designed to be a lightweight, efficient, intuitive and immutable alternative.
 
@@ -17,13 +14,24 @@ Farenheight f = 40;
 Celcius c = 32;
 Kelvin k = (c - f) * 2;
 ```
-We quickly see that cunit is designed to work like, and alongside doubles. There are no methods to cast one measurement into another, it happens seamlessly. The only thing cunit **does not** cast to is a double. You must explicitly call `myUnit.Value` as an example. I believe casting these units to doubles implicitly will cause all sorts of weird issues in calculations, and I'd rather avoid that.
+We quickly see that cunit is designed to work like, and alongside doubles. There are no methods to convert one measurement into another, it happens seamlessly. The only thing cunit **does not do implictly** cast to is a double. You must explicitly call `myUnit.Value` as an example. I believe casting these units to doubles implicitly could cause issues in calculations, and I'd rather avoid that.
 
-For more syntax, see this test class [Syntax](https://github.com/clicketyclackety/cunit/blob/main/tests/cunit.tests/Syntax.cs).
+Here's a more complex example, that showcases all of the available operations cunit offers.
+```csharp
+Meter m1 = 200;
+Meter m2 = 100;
+Meter m3 = 50;
+Kilogram kg = 50;
+
+var result = ((m1 + m2) * m3) / (m2++) * (m3 % 20) / (--m1) * m2 * m1 * kg;
+```
+The end result is a KilogramPerMeterCubed. A complex, 4 dimensional unit. If we tried to divide the result by a meter, the compiler would not let us. After all a KilogramPerMeterSquared does not exist.
+
+For more syntax examples, see this test class [Syntax](https://github.com/clicketyclackety/cunit/blob/main/tests/cunit.tests/Syntax.cs).
 
 
 # Serializing
-cunit has native `System.Text.Json` support, you can serialize and deserialize any unit with ease.
+cunit has native `System.Text.Json` support, you can serialize and deserialize any unit with ease. It also has support for `Newtonsoft.Json`.
 ``` csharp
 Kilogram kg = 2;
 var json = JsonSerializer.Serialize(kg);
@@ -59,29 +67,37 @@ Console.WriteLine(kmph.YValue); // 1000
 ```
 
 \* If you generate a Cubed unit from a single value, 2 of those dimensions will be 1.
+```csharp
+var kmph = new KilometersPerHour(1000;)
+Console.WriteLine(kmph.XValue); // 1000
+Console.WriteLine(kmph.YValue); // 1
+```
 
 # SI
 Everything in cunit is based on SI. Every unit is always a representation of a base SI unit, and every unit can return an SI unit by calling `ToSI()`.  This is implemented in the `IUnit<T>` interface.
 
 #  Flexibility
-cunit has some constants defined, such as tolerance which can be globally modified to allow for a consistent tolerance across your calculations.
-cunit also has the unit defined in the generator, so if you need cunit but using float, or decimal. You should be able to change this and rebuild as you require.
+Cunit has some constants defined, such as tolerance which can be globally modified to allow for a consistent tolerance across your calculations. Cunit also has the unit defined in the generator, so if you need cunit but using float, or decimal. You should be able to change this and rebuild as you require.
 
 # Error Handling
 As every unit is a struct you can make some very type safe null free code. Sometimes however, you may hit a scenario where a unit does not exist within this dimension, or you need to return an indication that things didn't go according to plan. Rather than returning a unit with a 0 value that can go undetected cunit has the UnknownUnit which can be explicitly used. There is also UnknownUnit.Err and UnknownUnit.None.
 
 # Custom Units
-cunit allows for creating custom units, infact, its designed with this in mind so that the library doesn't contain every unit vertebrates ever concieved making autocomplete overwhelming.
+Cunit allows for creating custom units, infact, its designed with this in mind so that the library doesn't contain every unit vertebrates ever concieved making autocomplete overwhelming.
 
 # Building
-cunit is a completely (99%) generated library, because I am very lazy, and I think distilling the concept of a unit is much more fun. It also means creating a new unit inside the library will multiply across all existing units.
+cunit is a completely generated library, because I am very lazy, and I think distilling the concept of a unit is much more fun. It also means creating a new unit inside the library will multiply across all existing units.
 (This also means errors propagate across every unit, which means errors are consistent)
 
 **To build cunit;**
 1. Clone this repo
-2. Build the generator project in visual studio. CUnit will be fully generated and filled out
-3. Manually select cunit and call for it to build
-4. You now have a copy of cunit.
+2. cd into the directory
+3. Run dotnet build
+
+### Tips
+1. Run dotnet watch for src/generator
+2. Run dotnet watch for tests/cunit.tests at the same time
+Modifying cunit files will cause cunit to fully regenerate and run the unit tests
 
 # Contributing
 If you wish to contribute to cunit, familiarise yourself with the code generation and how each line affects the units created.
