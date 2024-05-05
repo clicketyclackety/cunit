@@ -155,7 +155,16 @@ public class GUnit : IGenerateableFile
     
     public virtual IEnumerable<string> GenerateConstructors()
     {
-        yield return $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/></summary>";
+        Func<string, string> constructorDocstring = (numeric) => $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/> from a <see cref=\"{numeric}\"./></summary>";
+
+        var numericTypes = new string[]
+        {
+            "double",
+            "decimal",
+            "int",
+            "float",
+        };
+
         if (Unit.Dimensions?.Length > 1)
         {
             string[] paramNames = Generics.GetUnitParameterNames(this);
@@ -170,44 +179,55 @@ public class GUnit : IGenerateableFile
             var tupleNames = string.Join(", ", tupleValues.Select(tv => $"tuple.{tv.Item2}.Value"));
             
             // TUPLE CONSTRUCTOR
-            yield return $"\tpublic {Unit.Name}(({tupleParameters}) tuple)";
-            yield return $"\t\t: this({tupleNames})";
-            yield return "\t{ }";
+            yield return constructorDocstring($"({tupleParameters})");
+            yield return $"\tpublic {Unit.Name}(({tupleParameters}) tuple) : this({tupleNames}) {{}}";
             yield return string.Empty;
-            
-            yield return $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/></summary>";
-            
-            // SECOND CONSTRUCTOR
-            List<string> paramPair = new List<string>();
-            for (int i = 0; i < Unit.Dimensions.Length; i++)
-            {
-                string paramName = paramNames[i].ToLowerInvariant();
-                paramPair.Add($"{Numerics.NumberType} {paramName} = 1");
                 
-                yield return $"\t/// <param name=\"{paramName}\">Dimension</param>";
-            }
-            yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
-            yield return "\t{";
-
-            List<string> computedValues = new(Unit.Dimensions.Length);
-            foreach(var paramName in Generics.GetUnitParameterNames(Unit))
+            // SECOND CONSTRUCTORS
+            foreach(var numeric in numericTypes)
             {
-                yield return $"\t\t{paramName} = {paramName.ToLowerInvariant()};";
-                computedValues.Add(paramName.ToLowerInvariant());
-            }
+                yield return constructorDocstring(numeric);
+                List<string> paramPair = new List<string>();
+                for (int i = 0; i < Unit.Dimensions.Length; i++)
+                {
+                    string paramName = paramNames[i].ToLowerInvariant();
+                    paramPair.Add($"{numeric} {paramName} = 1");
+                    
+                    yield return $"\t/// <param name=\"{paramName}\">Dimension</param>";
+                }
 
-            yield return $"\t\t_preComputedValue = {string.Join(" * ", computedValues)};";
-            yield return $"\t\t_preComputedHash = {(Unit.BaseUnit ?? Unit).Name.GetHashCode()} ^ Value.GetHashCode();";
+                yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
+                yield return "\t{";
+
+                List<string> computedValues = new(Unit.Dimensions.Length);
+                foreach(var paramName in Generics.GetUnitParameterNames(Unit))
+                {
+                    yield return $"\t\t{paramName} = ({Numerics.NumberType}){paramName.ToLowerInvariant()};";
+                    computedValues.Add(paramName.ToLowerInvariant());
+                }
+
+                yield return $"\t\t_preComputedValue = ({Numerics.NumberType})({string.Join(" * ", computedValues)});";
+                yield return $"\t\t_preComputedHash = {(Unit.BaseUnit ?? Unit).Name.GetHashCode()} ^ Value.GetHashCode();";
+                yield return "\t}";
+                yield return string.Empty;
+            }
         }
         else
         {
-            yield return $"\tpublic {Unit.Name}({Numerics.NumberType} value = 1)";
-            yield return "\t{";
-            yield return "\t\tValue = value;";
-            yield return $"\t\t_preComputedHash = {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
+            foreach(var numeric in numericTypes)
+            {
+                yield return constructorDocstring(numeric);
+                yield return $"\tpublic {Unit.Name}({numeric} value = 1)";
+                yield return "\t{";
+                yield return $"\t\tValue = ({Numerics.NumberType})value;";
+                yield return $"\t\t_preComputedHash = {Unit.Name.GetHashCode()} ^ Value.GetHashCode();";
+                yield return "\t}";
+                yield return string.Empty;
+            }
         }
         
-        yield return "\t}";
+        yield return constructorDocstring(Numerics.NumberType);
+        yield return $"\tpublic {Unit.Name}({Unit.Name} unit) : this(unit.Value) {{}}";
         yield return string.Empty;
     }
     
@@ -218,7 +238,10 @@ public class GUnit : IGenerateableFile
         yield return "\t#region Methods";
         yield return string.Empty;
         yield return "\t/// <summary>Converts this unit to SI. Note that this unit may already be SI</summary>";
-        yield return $"\tpublic {baseUnit.Name} ToSI() => ({baseUnit.Name})this;";
+        if (Unit.BaseUnit is null)
+            yield return $"\tpublic {baseUnit.Name} ToSI() => new (this.Value);";
+        else
+            yield return $"\tpublic {baseUnit.Name} ToSI() => ({baseUnit.Name})this;";
         yield return string.Empty;
         yield return "\t#endregion";
         yield return string.Empty;
@@ -281,6 +304,7 @@ public class GUnit : IGenerateableFile
         yield return string.Empty;
     }
     
+    // TODO : Should a multi-dimensional unit be allowed to "add" 1?
     public virtual IEnumerable<string> GeneratePlusMinusOperators()
     {
         yield return "\t#region Mathmatic Operators";
@@ -393,6 +417,7 @@ public class GUnit : IGenerateableFile
             
             yield return string.Empty;
             yield return "\t#endregion";
+            yield return string.Empty;
 
         }
     }
@@ -427,6 +452,7 @@ public class GUnit : IGenerateableFile
 
         yield return string.Empty;
         yield return "\t#endregion";
+        yield return string.Empty;
     }
 
     public virtual IEnumerable<string> GeneratePositiveNegativeOperators()
