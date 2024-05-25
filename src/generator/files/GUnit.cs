@@ -49,6 +49,7 @@ public class GUnit : IGenerateableFile
         Lines.AddRange(GenerateConstructors());
         Lines.AddRange(GenerateClassMethods());
         Lines.AddRange(GenerateImplicitOperators());
+        Lines.AddRange(GenerateExplicitOperators());
         Lines.AddRange(GenerateTupleOperators());
         Lines.AddRange(GeneratePlusMinusOperators());
         Lines.AddRange(GenerateMultiplyDivideOperators());
@@ -278,16 +279,20 @@ public class GUnit : IGenerateableFile
     // Single Dimensions
     public virtual IEnumerable<string> GenerateImplicitOperators()
     {
-        yield return "\t#region Operators";
-        yield return string.Empty;
         
         // Double to Type
         yield return "\t#region Casting";
         yield return string.Empty;
-        
-        yield return $"\t/// <summary>Converts a <see cref=\"{Numerics.NumberType}\"/> into this <see cref=\"{Unit.Name}\"/>.</summary>";
-        yield return $"\tpublic static implicit operator {Unit.Name}({Numerics.NumberType} value) => new (value);";
+
+        yield return "\t#region Implicit Operators";
         yield return string.Empty;
+        
+        foreach(var NumberType in Numerics.NumberTypes)
+        {
+            yield return $"\t/// <summary>Converts a <see cref=\"{NumberType}\"/> into this <see cref=\"{Unit.Name}\"/>.</summary>";
+            yield return $"\tpublic static implicit operator {Unit.Name}({NumberType} value) => new (value);";
+            yield return string.Empty;
+        }
 
         if (Unit.BaseUnit is not null)
         {
@@ -310,6 +315,26 @@ public class GUnit : IGenerateableFile
                 yield return string.Empty;
             }
         }
+
+        yield return "\t#endregion";
+        yield return string.Empty;
+    }
+    
+    // Single Dimensions
+    public virtual IEnumerable<string> GenerateExplicitOperators()
+    {
+        yield return "\t#region Explicit Operators";
+        yield return string.Empty;
+        
+        foreach(var NumberType in Numerics.NumberTypes)
+        {
+            yield return $"\t/// <summary>Converts a this <see cref=\"{Unit.Name}\"/> into <see cref=\"{NumberType}\"/>.</summary>";
+            yield return $"\tpublic static explicit operator {NumberType}({Unit.Name} unit) => ({NumberType})unit.Value;";
+            yield return string.Empty;
+        }
+
+        yield return "\t#endregion";
+        yield return string.Empty;
     }
 
     public virtual IEnumerable<string> GenerateTupleOperators()
@@ -325,8 +350,6 @@ public class GUnit : IGenerateableFile
             yield return opString;
             yield return string.Empty;
         }
-
-        yield return "\t#endregion";
         
         // More complexity now!
         yield return string.Empty;
@@ -340,12 +363,15 @@ public class GUnit : IGenerateableFile
         // + and -
         foreach(var @operator in new [] { "+", "-"})
         {
-            yield return string.Empty;
+            foreach(var numberType in Numerics.NumberTypes)
+            {
+                yield return string.Empty;
 
-            yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {Numerics.NumberType} right)" +
-                         $"=> left.Value {@operator} right;";
-            yield return $"\tpublic static {Unit.Name} operator {@operator}({Numerics.NumberType} left, {Unit.Name} right)" +
-                         $"=> left {@operator} right.Value;";
+                yield return $"\tpublic static {Unit.Name} operator {@operator}({Unit.Name} left, {numberType} right)" +
+                            $"=> left.Value {@operator} ({Numerics.NumberType})right;";
+                yield return $"\tpublic static {Unit.Name} operator {@operator}({numberType} left, {Unit.Name} right)" +
+                            $"=> ({Numerics.NumberType})left {@operator} right.Value;";
+            }
 
             foreach (var relatedUnit in new []{ Unit }.Union(Utils.GetRelatedUnits(Unit)))
             {
@@ -362,7 +388,7 @@ public class GUnit : IGenerateableFile
                         var g = Generics.Names[i].ToLowerInvariant();
                         genericNames.Add($"{g}.Value");
                         var gv = Generics.GetParam(i);
-                        yield return $"\t\tvar {g} = left.{gv} {@operator} right.{gv};";
+                        yield return $"\t\tvar {g} = left.{gv} {@operator} ({Numerics.NumberType})right.{gv};";
                     }
                     
                     yield return $"\t\treturn new ({string.Join(", ", genericNames)});";
@@ -381,11 +407,19 @@ public class GUnit : IGenerateableFile
     {
         yield return string.Empty;
         
-        yield return $"\tpublic static {Unit.Name} operator /({Unit.Name} left, {Numerics.NumberType} right)" +
-                     $"=> left.Value / right;";
-        yield return $"\tpublic static {Unit.Name} operator /({Numerics.NumberType} left, {Unit.Name} right)" +
-                     $"=> left / right.Value;";
-     
+        foreach(var op in new[] { "/", "*" })
+        {
+            foreach(var numberType in Numerics.NumberTypes)
+            {
+                yield return $"\tpublic static {Unit.Name} operator {op}({Unit.Name} left, {numberType} right)" +
+                            $"=> left.Value {op} ({Numerics.NumberType})right;";
+                yield return $"\tpublic static {Unit.Name} operator {op}({numberType} left, {Unit.Name} right)" +
+                            $"=> ({Numerics.NumberType})left {op} right.Value;";
+            }
+
+            yield return string.Empty;
+        }
+
         var unitPairs = Utils.GetBuildPieces(Unit);   
         foreach (var unitPair in unitPairs)
         {
@@ -403,12 +437,6 @@ public class GUnit : IGenerateableFile
                 $"\tpublic static {unitPair[1].Name} operator /({Unit.Name} left, {unitPair[0].Name} right)" +
                 $" => left.Value / right.Value;";
         }
-        
-        yield return string.Empty;
-        yield return $"\tpublic static {Unit.Name} operator *({Unit.Name} left, {Numerics.NumberType} right)" +
-                     $"=> left.Value * right;";
-        yield return $"\tpublic static {Unit.Name} operator *({Numerics.NumberType} left, {Unit.Name} right)" +
-                     $"=> left * right.Value;";
         
         var setPairs = Utils.GetBuildingSets(Unit);
         foreach (var setPair in setPairs)
@@ -455,10 +483,13 @@ public class GUnit : IGenerateableFile
         yield return "\t#region Modulo";
         yield return string.Empty;
         
-        yield return $"\tpublic static {Unit.Name} operator %({Unit.Name} left, {Numerics.NumberType} right)" +
-                     $"=> left.Value % right;";
-        yield return $"\tpublic static {Unit.Name} operator %({Numerics.NumberType} left, {Unit.Name} right)" +
-                     $"=> left % right.Value;";
+        foreach(var numberType in Numerics.NumberTypes)
+        {
+            yield return $"\tpublic static {Unit.Name} operator %({Unit.Name} left, {numberType} right)" +
+                        $"=> left.Value % ({Numerics.NumberType})right;";
+            yield return $"\tpublic static {Unit.Name} operator %({numberType} left, {Unit.Name} right)" +
+                        $"=> ({Numerics.NumberType})left % right.Value;";
+        }
      
         var unitPairs = Utils.GetBuildPieces(Unit);   
         foreach (var unitPair in unitPairs)
@@ -507,17 +538,21 @@ public class GUnit : IGenerateableFile
         // Greater, Less Than etc.
         foreach (var statement in Numerics.ComparisonOperators)
         {
-            yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Numerics.NumberType} right)" +
-                         $" => left.Value {statement} right;";
-            yield return $"\tpublic static bool operator {statement}({Numerics.NumberType} left, {Unit.Name} right)" +
-                         $" => left {statement} right.Value;";
+            foreach(var numberType in Numerics.NumberTypes)
+            {
+                yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {numberType} right)" +
+                            $" => left.Value {statement} ({Numerics.NumberType})right;";
+                yield return $"\tpublic static bool operator {statement}({numberType} left, {Unit.Name} right)" +
+                            $" => ({Numerics.NumberType})left {statement} right.Value;";    
+            }
+
             yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {Unit.Name} right)" +
-                         $" => left.Value {statement} right.Value;";
-            
+                        $" => left.Value {statement} right.Value;";
+
             foreach (var relatedUnit in Utils.GetRelatedUnits(Unit))
             {
                 yield return $"\tpublic static bool operator {statement}({Unit.Name} left, {relatedUnit.Name} right)" +
-                             $" => left.ToSI().Value {statement} right.ToSI().Value;";
+                            $" => left.ToSI().Value {statement} right.ToSI().Value;";
             }
             
             yield return string.Empty;
@@ -537,12 +572,36 @@ public class GUnit : IGenerateableFile
         
         string unitOrBaseUnit = (Unit.BaseUnit ?? Unit).Name;
         
+        foreach(var numberType in Numerics.NumberTypes)
+        {
+            yield return
+                $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with a <see cref=\"{numberType}\"/> for equality (Constants Tolerance used)</summary>";
+            yield return
+                $"\tpublic bool Equals({numberType} value) => Math.Abs(({numberType})this.Value - value) <= ({numberType})cunit.Constants.Tolerance;";
+            yield return
+                $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with a <see cref=\"{numberType}\"/> for equality given a tolerance</summary>";
+            yield return
+                $"\tpublic bool EpsilonEquals({numberType} value, {numberType} tolerance) => (Math.Abs(({numberType})this.Value - value)) <= tolerance;";
+            yield return string.Empty;
+
+            yield return
+                $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with a <see cref=\"{numberType}\"/> for equality (no tolerance used)</summary>";
+            yield return $"\tpublic static bool operator ==({Unit.Name} left, {numberType} right)" +
+                        $" => ({numberType})left.Value == right;";
+
+            yield return
+                $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with a <see cref=\"{numberType}\"/> for inequality (no tolerance used)</summary>";
+            yield return
+                $"\tpublic static bool operator !=({Unit.Name} left, {numberType} right) => !(({numberType})left.Value == right);";
+            yield return string.Empty;
+        }
+
         yield return
-            $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{Unit.Name}\"/> for Equality (Constants Tolerance used)</summary>";
+            $"\t/// <summary>Compares this <see cref=\"{Unit.Name}\"/> with another <see cref=\"{Unit.Name}\"/> for equality (Constants Tolerance used)</summary>";
         yield return
             $"\tpublic bool Equals(IUnit<{unitOrBaseUnit}>? unit) => unit is not null && Math.Abs((this.ToSI() - unit.ToSI()).Value) <= cunit.Constants.Tolerance;";
         yield return
-            $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with <see cref=\"{Unit.Name}\"/> for Equality given a tolerance</summary>";
+            $"\t/// <summary>Compares IUnit<{unitOrBaseUnit}> with <see cref=\"{Unit.Name}\"/> for equality given a tolerance</summary>";
         yield return
             $"\tpublic bool EpsilonEquals(IUnit<{unitOrBaseUnit}> unit, double tolerance) => Math.Abs((this.ToSI() - unit.ToSI()).Value) <= tolerance;";
     

@@ -35,11 +35,11 @@ public class Conversions
         {
             var iP = i + 1;
             
-            Assert.That(units[i], Is.EqualTo(units[i]));
-            Assert.That(units[iP], Is.EqualTo(units[iP]));
+            Assert.That(units[i].Equals(units[i]));
+            Assert.That(units[iP].Equals(units[iP]));
 
-            Assert.That(units[i], Is.EqualTo(units[iP]));
-            Assert.That(units[iP], Is.EqualTo(units[i]));
+            Assert.That(units[i].Equals(units[iP]));
+            Assert.That(units[iP].Equals(units[i]));
         }
     }
 
