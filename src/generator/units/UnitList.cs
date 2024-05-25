@@ -74,8 +74,8 @@ public static class UnitList
         {
             // TODO : Ratio requires more than just a double!
             // TODO : Add Extensions
-            var squared = new GUnit($"{unit.Name}Squared", $"{unit.Symbol}²", meterSquared, new [] {unit.Name, unit.Name}, formula:"<0> * <1>", calculation: $"<vx>, <vy>");
-            var cubed = new GUnit($"{unit.Name}Cubed", $"{unit.Symbol}³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, formula:"<0> * <1> * <2>", calculation: $"<vx>, <vy>, <vz>");
+            var squared = new GUnit($"{unit.Name}Squared", $"{unit.Symbol}²", meterSquared, new [] {unit.Name, unit.Name}, formula:"<0> * <1>", calculation: $"<vx>, <vy>", min:0);
+            var cubed = new GUnit($"{unit.Name}Cubed", $"{unit.Symbol}³", meterCubed, new [] {unit.Name, unit.Name, unit.Name }, formula:"<0> * <1> * <2>", calculation: $"<vx>, <vy>, <vz>", min:0);
             
             if (unit.Name.Equals(meter.Name, StringComparison.InvariantCultureIgnoreCase))
             {
@@ -107,10 +107,10 @@ public static class UnitList
         
         #region TEMPERATURE
         
-        var kelvin = new GUnit("Kelvin", "K");
+        var kelvin = new GUnit("Kelvin", "°K", min:0);
         yield return kelvin;
-        yield return new GUnit("Celsius", "C", kelvin, calculation: "<vV> + 273.15");
-        yield return new GUnit("Fahrenheit", "F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15");
+        yield return new GUnit("Celsius", "°C", kelvin, calculation: "<vV> + 273.15", min:-273.15);
+        yield return new GUnit("Fahrenheit", "°F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15", min:-459.67);
         
         #endregion
         
@@ -126,22 +126,26 @@ public static class UnitList
         
         #endregion
         
-        yield return new GUnit("Candela", "cd");
+        var candela = new GUnit("Candela", "cd", min:0);
+        yield return candela;
+        // What units can a cadela be converted to?
         
-        yield return new GUnit("Ampere", "A");
+        var ampere = new GUnit("Ampere", "A");
+        yield return ampere;
+        // What units can an Ampere be converted to?
         
-        yield return new GUnit("Mole", "Mol");
+        yield return new GUnit("Mole", "mol", min:0);
         
         #region MEMORY
         
-        var @byte = new GUnit("Byte", "B");
+        var @byte = new GUnit("Byte", "B", min:0);
         yield return @byte;
         
-        yield return new GUnit("Bit", "b", @byte, calculation:"<vV> * 8");
+        yield return new GUnit("Bit", "b", @byte, calculation:"<vV> * 8", min:0);
         
-        yield return new GUnit("Kilobyte", "KB", @byte, calculation:"<vV> * 1024");
-        yield return new GUnit("Megabyte", "MB", @byte, calculation:"<vV> * 1024 * 1024");
-        yield return new GUnit("Gigabyte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024");
+        yield return new GUnit("Kilobyte", "KB", @byte, calculation:"<vV> * 1024", min:0);
+        yield return new GUnit("Megabyte", "MB", @byte, calculation:"<vV> * 1024 * 1024", min:0);
+        yield return new GUnit("Gigabyte", "GB", @byte, calculation:"<vV> * 1024 * 1024 * 1024", min:0);
         
         #endregion
         
@@ -149,7 +153,9 @@ public static class UnitList
 
         // TODO : Resolve Hybrid Units
         // yield return new GUnit("MetersPerSecond", $"{meter.Symbol}/{second.Symbol}²", null, new[] { meter.Name, second.Name }, formula:"<1> / <1>");
-        yield return new GUnit("KilogramPerMeterCubed", "kg/m3", null, new[] { meter.Name, meter.Name, meter.Name, kilo.Name }, formula:"<0> * <1> * <2> / <3>",  calculation:"<vV> / 0");
+        yield return new GUnit("KilogramPerMeterCubed", "kg/m3", null, new[] { meter.Name, meter.Name, meter.Name, kilo.Name }, formula:"<0> * <1> * <2> / <3>",  calculation:"<vV> / 0", min:0);
+
+        // Generate a new unit
 
         #endregion
 

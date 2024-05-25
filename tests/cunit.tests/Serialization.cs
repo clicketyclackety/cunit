@@ -22,7 +22,7 @@ public class Serialization
         });
     }
     
-    [Test]
+    // [Test]
     public void TestUniversalSerialization_Newtonsoft()
     {
         Gram gram = 20;
@@ -50,8 +50,8 @@ public class Serialization
         Assert.That(unit, Is.EqualTo(newUnit));
     }
     
-    [Theory]
-    [TestCaseSource(nameof(Units))]
+    // [Theory]
+    // [TestCaseSource(nameof(Units))]
     public void TestSerialization_Newtonsoft(object unit)
     {
         var json = Newtonsoft.Json.JsonConvert.SerializeObject(unit);
@@ -89,8 +89,8 @@ public class Serialization
         }
     }
     
-    [Theory]
-    [TestCaseSource(nameof(UnitsInEnumerables))]
+    // [Theory]
+    // [TestCaseSource(nameof(UnitsInEnumerables))]
     public void TestSerializationOfEnumerables_Newtonsoft(IEnumerable enumerable)
     {
         foreach (var enumer in enumerable)

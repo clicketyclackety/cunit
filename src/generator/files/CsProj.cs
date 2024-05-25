@@ -15,7 +15,7 @@ public class CsProj : IGenerateableFile
         yield return "<Project Sdk=\"Microsoft.NET.Sdk\">";
         yield return string.Empty;
         yield return "\t<PropertyGroup>";
-        yield return "\t\t<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>";
+        yield return "\t\t<TargetFrameworks>netstandard2.0;net7.0</TargetFrameworks>";
         yield return "\t\t<ImplicitUsings>enable</ImplicitUsings>";
         yield return "\t\t<Nullable>enable</Nullable>";
         yield return "\t\t<LangVersion>11</LangVersion>";

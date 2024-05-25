@@ -12,17 +12,22 @@ public class GUnit : IGenerateableFile
     public string Name {get;}
     public string Symbol {get;}
     public GUnit Unit => this;
-    public GUnit BaseUnit {get;}
-    public string[] Dimensions {get;}
+    public GUnit? BaseUnit {get;}
+    public string[]? Dimensions {get;}
     public string Formula {get;}
     public string Calculation {get;}
+
+    public double Minimum {get; set;} = double.MinValue;
+    public double Maximum {get; set;} = double.MaxValue;
 
     public GUnit(string name,
         string symbol,
         GUnit? baseUnit = null,
         string[]? dimensions = null,
         string formula = "",
-        string calculation = "")
+        string calculation = "",
+        double min = double.MinValue,
+        double max = double.MaxValue)
     {
         Name = name;
         Symbol = symbol;
@@ -30,6 +35,8 @@ public class GUnit : IGenerateableFile
         Dimensions = dimensions;
         Formula = formula;
         Calculation = calculation;
+        Minimum = min;
+        Maximum = max;
     }
 
     public virtual List<string> Generate()
@@ -80,7 +87,7 @@ public class GUnit : IGenerateableFile
     {
         yield return "using System.Globalization;";
         yield return "using System.Text.Json.Serialization;";
-        yield return string.Empty;
+        yield return "using System.Numerics;";
         yield return "using cunit.Json;";
         yield return string.Empty;
         yield return "namespace cunit;";
@@ -90,7 +97,13 @@ public class GUnit : IGenerateableFile
     public virtual IEnumerable<string> GenerateClassDeclaration()
     {
         yield return "/// <summary>";
-        yield return $"/// Represents a <see cref=\"{Name}\"/> Unit.";
+        yield return $"/// Represents a {Numerics.NumberType} as a <see cref=\"{Name}\"/> Unit.";
+        if (Unit.Dimensions is not null)
+        {
+            bool anyDifferent = new HashSet<string>(Unit.Dimensions).Count != 1;
+            var diffString = anyDifferent ? "different " : "";
+            yield return $"/// This unit is multi-dimensional, meaning it is constructed from multiple {diffString}units.";
+        }
         yield return "/// </summary>";
         yield return $"[JsonConverter(typeof(UniversalConverter))]";
         var interfaces = new List<string>()
@@ -98,6 +111,9 @@ public class GUnit : IGenerateableFile
             $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>",
             "IFormattable",
             $"IEquatable<IUnit<{(Unit.BaseUnit ?? Unit).Name}>>",
+            
+            $"IParsable<{Unit.Name}>",
+            $"IMinMaxValue<{Unit.Name}>",
         };
 
         if (Unit.Dimensions is not null)
@@ -123,6 +139,10 @@ public class GUnit : IGenerateableFile
     public virtual IEnumerable<string> GenerateClassProperties()
     {
         yield return $"\tprivate readonly int _preComputedHash = -1;";
+        yield return string.Empty;
+        yield return $"\tpublic static {Unit.Name} MaxValue => new ({Unit.Maximum});";
+        yield return string.Empty;
+        yield return $"\tpublic static {Unit.Name} MinValue => new ({Unit.Minimum});";
         yield return string.Empty;
         
         // If we have multiple dimensions, this should be more complex
@@ -155,15 +175,9 @@ public class GUnit : IGenerateableFile
     
     public virtual IEnumerable<string> GenerateConstructors()
     {
-        Func<string, string> constructorDocstring = (numeric) => $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/> from a <see cref=\"{numeric}\"./></summary>";
+        Func<string, string> constructorDocstring = (numeric) => $"\t/// <summary>Creates a new instance of a <see cref=\"{Unit.Name}\"/> from a <see cref=\"{numeric}\"/></summary>" + 
+                                                                  "\n\t/// <remarks>Note that cunit will not prevent you using incorrect values, such as negatives or values outside of the range of possibility for a unit (e.g -400 Kelvin). Cunit will not correct your maths.</remarks>";
 
-        var numericTypes = new string[]
-        {
-            "double",
-            "decimal",
-            "int",
-            "float",
-        };
 
         if (Unit.Dimensions?.Length > 1)
         {
@@ -184,7 +198,7 @@ public class GUnit : IGenerateableFile
             yield return string.Empty;
                 
             // SECOND CONSTRUCTORS
-            foreach(var numeric in numericTypes)
+            foreach(var numeric in Numerics.NumberTypes)
             {
                 yield return constructorDocstring(numeric);
                 List<string> paramPair = new List<string>();
@@ -193,7 +207,7 @@ public class GUnit : IGenerateableFile
                     string paramName = paramNames[i].ToLowerInvariant();
                     paramPair.Add($"{numeric} {paramName} = 1");
                     
-                    yield return $"\t/// <param name=\"{paramName}\">Dimension</param>";
+                    yield return $"\t/// <param name=\"{paramName}\">Theoretical {paramName.First().ToString().ToUpper()} Dimension.</param>";
                 }
 
                 yield return $"\tpublic {Unit.Name}({string.Join(", ", paramPair)})";
@@ -214,7 +228,7 @@ public class GUnit : IGenerateableFile
         }
         else
         {
-            foreach(var numeric in numericTypes)
+            foreach(var numeric in Numerics.NumberTypes)
             {
                 yield return constructorDocstring(numeric);
                 yield return $"\tpublic {Unit.Name}({numeric} value = 1)";
@@ -243,6 +257,20 @@ public class GUnit : IGenerateableFile
         else
             yield return $"\tpublic {baseUnit.Name} ToSI() => ({baseUnit.Name})this;";
         yield return string.Empty;
+
+        yield return $"\tpublic static {Unit.Name} Parse (string s, IFormatProvider? provider)";
+        yield return "\t{";
+        yield return $"\t\tif (s.Contains(Symbol)) {{}}";
+        yield return $"\t\treturn new {Unit.Name}(0);";
+        yield return "\t}";
+        yield return string.Empty;
+        yield return $"\tpublic static bool TryParse (string? s, IFormatProvider? provider, out {Unit.Name} result)";
+        yield return "\t{";
+        yield return $"\t\tresult = Parse(s, provider);";
+        yield return $"\t\treturn result.Value != {Unit.Name}.MinValue;";
+        yield return "\t}";
+        yield return string.Empty;
+
         yield return "\t#endregion";
         yield return string.Empty;
     }

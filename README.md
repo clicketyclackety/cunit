@@ -31,7 +31,7 @@ For more syntax examples, see this test class [Syntax](https://github.com/clicke
 
 
 # Serializing
-cunit has native `System.Text.Json` support as well as support for `Newtonsoft.Json`, you can serialize and deserialize any unit with ease.
+cunit has native `System.Text.Json` support (but currently not `Newtonsoft.Json`), you can serialize and deserialize any unit with ease.
 ``` csharp
 Kilogram kg = 2;
 var json = JsonSerializer.Serialize(kg);

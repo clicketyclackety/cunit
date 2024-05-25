@@ -3,6 +3,7 @@ using generators.foundations;
 
 namespace generator.units;
 
+
 public class UniversalSerializer : IGenerateableFile
 {
     

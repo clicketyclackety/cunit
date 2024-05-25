@@ -24,6 +24,9 @@ internal sealed class Writer
         var constants = new ConstantsFile();
         WriteFile(constants);
 
+        var conversions = new ConversionsFile();
+        WriteFile(conversions);
+
         var interfaceFile = new UnitInterfaceFile();
         WriteFile(interfaceFile);
 
