@@ -112,9 +112,6 @@ public class GUnit : IGenerateableFile
             $"IUnit<{(Unit.BaseUnit ?? Unit).Name}>",
             "IFormattable",
             $"IEquatable<IUnit<{(Unit.BaseUnit ?? Unit).Name}>>",
-            
-            $"IParsable<{Unit.Name}>",
-            $"IMinMaxValue<{Unit.Name}>",
         };
 
         if (Unit.Dimensions is not null)
@@ -131,6 +128,12 @@ public class GUnit : IGenerateableFile
         }
 
         classDeclaration += string.Join(",\n\t\t\t\t", interfaces);
+
+        classDeclaration += $"\n#if NET7_0_OR_GREATER\n";
+        classDeclaration += $"\t\t\t\t, IMinMaxValue<{Unit.Name}>\n";
+        classDeclaration += $"\t\t\t\t, IParsable<{Unit.Name}>";
+        classDeclaration += $"\n#endif";
+
         yield return classDeclaration;
         
         yield return "{";
