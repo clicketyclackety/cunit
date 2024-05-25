@@ -14,14 +14,14 @@ Farenheight f = 40;
 Celcius c = 32;
 Kelvin k = (c - f) * 2;
 ```
-We quickly see that cunit is designed to work like, and alongside doubles. There are no methods to convert one measurement into another, it happens seamlessly. The only thing cunit **does not do implictly** cast to is a double. You must explicitly call `myUnit.Value` as an example. I believe casting these units to doubles implicitly could cause issues in calculations, and I'd rather avoid that.
+We quickly see that cunit is designed to work like, and alongside standard dotnet numbers. There are no methods to convert one measurement into another, it happens seamlessly. The only thing cunit **does not do implictly** cast to is a double. You must call `myUnit.Value` or explicitly cast it `(double)myUnit`. Avoiding implicit casts ensures better accuracy in calculations as units 
 
 Here's a more complex example, that showcases many of the available operations cunit offers.
 ```csharp
 Meter m1 = 200;
-Meter m2 = 100;
-Meter m3 = 50;
-Kilogram kg = 50;
+Meter m2 = 100f;
+Meter m3 = 50m;
+Kilogram kg = 50.0;
 
 var result = ((m1 + m2) * m3) / (m2++) * (m3 % 20) / (--m1) * m2 * m1 * kg;
 ```
@@ -31,7 +31,7 @@ For more syntax examples, see this test class [Syntax](https://github.com/clicke
 
 
 # Serializing
-cunit has native `System.Text.Json` support (but currently not `Newtonsoft.Json`), you can serialize and deserialize any unit with ease.
+cunit has native `System.Text.Json` support (but not `Newtonsoft.Json` currently), you can serialize and deserialize any unit with ease.
 ``` csharp
 Kilogram kg = 2;
 var json = JsonSerializer.Serialize(kg);
@@ -48,9 +48,9 @@ var gram = JsonSerializer.Deserialize<Gram>(json);
 # Performance
 All of cunits units are precomputed readonly structs. This means;
 - GetHashCode() has no extra overhead
-- Every operation you perform with cunit takes place on the stack
-- Cunit is (almost) as fast as using doubles
-- They are immutable, and as such cannot be accidentaly mutated
+- Every unit you create lives on the stack
+- Cunit is (almost) as fast as using doubles, decimals, etc.
+- They are immutable, and as such the original unit cannot be accidentaly mutated and will always be copied.
 
 See cunit.benchmarks for more info on speed comparisons.
 
@@ -66,11 +66,12 @@ Console.WriteLine(kmph.XValue); // 60
 Console.WriteLine(kmph.YValue); // 1000
 ```
 
-\* If you generate a Cubed unit from a single value, 2 of those dimensions will be 1.
+\* If you generate a Cubed unit from a single value, 2 of those dimensions will be 1. Take care when disassembling multi-units that you create from single values.
 ```csharp
-var kmph = new KilometersPerHour(1000;)
-Console.WriteLine(kmph.XValue); // 1000
-Console.WriteLine(kmph.YValue); // 1
+var mc = new MetersCubed(1000);
+Console.WriteLine(mc.XValue); // 1000
+Console.WriteLine(mc.YValue); // 1
+Console.WriteLine(mc.ZValue); // 1
 ```
 
 # SI
@@ -80,10 +81,10 @@ Everything in cunit is based on SI. Every unit is always a representation of a b
 Cunit has some constants defined, such as tolerance which can be globally modified to allow for a consistent tolerance across your calculations. Cunit also has the unit defined in the generator, so if you need cunit but using float, or decimal. You should be able to change this and rebuild as you require.
 
 # Error Handling
-As every unit is a struct you can make some very type safe null free code. Sometimes however, you may hit a scenario where a unit does not exist within this dimension, or you need to return an indication that things didn't go according to plan. Rather than returning a unit with a 0 value that can go undetected cunit has the UnknownUnit which can be explicitly used. There is also UnknownUnit.Err and UnknownUnit.None.
+As every unit is a struct you can make some very type safe null free code. Sometimes however, you may hit a scenario where a unit does not exist within this dimension, or you need to return an indication that things didn't go according to plan. Rather than returning a unit with a 0 value that can go undetected cunit has the UnknownUnit which can be explicitly used. There is also UnknownUnit.Err and UnknownUnit.None. If serialization or an operation fails cunit will return one of these two.
 
 # Custom Units
-Cunit allows for creating custom units, infact, its designed with this in mind so that the library doesn't contain every unit vertebrates ever concieved making autocomplete overwhelming.
+Cunit allows for creating custom units, infact, it is designed with this in mind so that the library doesn't contain every unit vertebrates ever concieved making autocomplete overwhelming.
 
 # Building
 cunit is a completely generated library, because I am very lazy, and I think distilling the concept of a unit is much more fun. It also means creating a new unit inside the library will multiply across all existing units.
@@ -91,12 +92,12 @@ cunit is a completely generated library, because I am very lazy, and I think dis
 
 **To build cunit;**
 1. Clone this repo
-2. cd into the directory
+2. cd into the cloned directory
 3. Run dotnet build
 
 ### Tips
 1. Run dotnet watch for src/generator
-2. Run dotnet watch for tests/cunit.tests at the same time
+2. Run dotnet watch test for tests/cunit.tests at the same time
 Modifying cunit files will cause cunit to fully regenerate and run the unit tests
 
 # Contributing

@@ -71,8 +71,6 @@ public class Tests
         MeterCubed m4 = new(mmm);
 
         FootCubed fc = m4;
-        // TODO : How do we sort that the divider may not equal that dimension?
-        // TODO : Where do those dimensions and those values go?
         FootSquared fs = m4 / new Meter(40);
     }
     
