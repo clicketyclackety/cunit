@@ -106,5 +106,5 @@ Apologies if the code is currently a tad naff. If this is your first generated c
 
 PRs don't have to be monumental, A PR that does nothing but add a new unit or correct my terrible spelling is still a fantastic PR in my books.
 
-# Other waffle
-I hope you enjoy this library, I'm not sure if I can feasibly, or even legally stop you using it to create nuclear warheads, advance late stage capitalism or lobby for further fossil fuel drilling. But if you could just not, I'd really appreciate that. It would cost you $0 to not do that, and you'd even be rewarded with my eternal gratitude.
+# License
+https://github.com/raisely/NoHarm
