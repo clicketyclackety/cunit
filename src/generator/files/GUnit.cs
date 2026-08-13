@@ -16,6 +16,7 @@ public class GUnit : IGenerateableFile
     public string[]? Dimensions {get;}
     public string Formula {get;}
     public string Calculation {get;}
+    public string Inverse {get;}
 
     public double Minimum {get; set;} = double.MinValue;
     public double Maximum {get; set;} = double.MaxValue;
@@ -26,6 +27,7 @@ public class GUnit : IGenerateableFile
         string[]? dimensions = null,
         string formula = "",
         string calculation = "",
+        string inverse = "",
         double min = double.MinValue,
         double max = double.MaxValue)
     {
@@ -35,6 +37,7 @@ public class GUnit : IGenerateableFile
         Dimensions = dimensions;
         Formula = formula;
         Calculation = calculation;
+        Inverse = inverse;
         Minimum = min;
         Maximum = max;
     }
@@ -224,7 +227,8 @@ public class GUnit : IGenerateableFile
                     computedValues.Add(paramName.ToLowerInvariant());
                 }
 
-                yield return $"\t\t_preComputedValue = ({Numerics.NumberType})({string.Join(" * ", computedValues)});";
+                // Cast each operand, not the product: the int overloads would otherwise overflow before widening.
+                yield return $"\t\t_preComputedValue = {string.Join(" * ", computedValues.Select(v => $"({Numerics.NumberType}){v}"))};";
                 yield return $"\t\t_preComputedHash = {(Unit.BaseUnit ?? Unit).Name.GetHashCode()} ^ Value.GetHashCode();";
                 yield return "\t}";
                 yield return string.Empty;
@@ -304,7 +308,12 @@ public class GUnit : IGenerateableFile
             yield return string.Empty;
             
             yield return $"\t/// <summary>Converts <see cref=\"{Unit.Name}\"/> into <see cref=\"{Unit.BaseUnit.Name}\"/>.</summary>";
-            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new (({Calculations.InvertCalculation(Calculations.FormatCalculation(Unit.Calculation))}));";
+            // A token swap cannot invert an affine calculation, so a unit may state its own inverse.
+            var inverse = string.IsNullOrEmpty(Unit.Inverse)
+                ? Calculations.InvertCalculation(Calculations.FormatCalculation(Unit.Calculation))
+                : Calculations.FormatCalculation(Unit.Inverse);
+
+            yield return $"\tpublic static implicit operator {Unit.Name}({Unit.BaseUnit.Name} value) => new (({inverse}));";
             yield return string.Empty;
 
             foreach (var r in Utils.GetRelatedUnits(this))

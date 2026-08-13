@@ -43,9 +43,9 @@ public static class UnitList
         
         #region MISC SPATIAL
 
-        var rad = new GUnit("Radian", "R", calculation: "180/cunit.Constants.PI");
+        var rad = new GUnit("Radian", "rad", calculation: "180/cunit.Constants.PI");
         yield return rad;
-        yield return new GUnit("Degree", "°", rad, calculation: "<vV> * (180/cunit.Constants.PI)");
+        yield return new GUnit("Degree", "°", rad, calculation: "<vV> * (cunit.Constants.PI/180)", inverse: "<vV> * (180/cunit.Constants.PI)");
         
         #endregion
         
@@ -57,7 +57,9 @@ public static class UnitList
         var millimeter = new GUnit("Millimeter", "mm", meter, calculation:"<vV> / 1000");
         var foot = new GUnit("Foot", "ft", meter, calculation:"<vV> *  0.3048");
         var inch = new GUnit("Inch", "in", meter, calculation:"<vV> *  0.0254");
-        
+        var yard = new GUnit("Yard", "yd", meter, calculation:"<vV> *  0.9144");
+        var mile = new GUnit("Mile", "mi", meter, calculation:"<vV> *  1609.344");
+
         GUnit[] distanceUnits = new []
         {
             meter,
@@ -65,7 +67,9 @@ public static class UnitList
             centimeter,
             millimeter,
             inch,
-            foot
+            foot,
+            yard,
+            mile
         };
 
         GUnit? meterSquared = null;
@@ -98,31 +102,31 @@ public static class UnitList
         
         // TODO : Extension method that converts a thing to a MiliThing or ExaThing?
         yield return new GUnit("MilliSecond", "ms", second, calculation: "<vV> / 1000");
-        yield return new GUnit("Minute", "M", second, calculation: "<vV> * 60");
-        yield return new GUnit("Hour", "H", second, calculation: "<vV> * 60 * 60");
-        yield return new GUnit("Day", "D", second, calculation: "<vV> * 60 * 60 * 24");
-        yield return new GUnit("Week", "W", second, calculation: "<vV> * 60 * 60 * 24 * 7");
+        yield return new GUnit("Minute", "min", second, calculation: "<vV> * 60");
+        yield return new GUnit("Hour", "h", second, calculation: "<vV> * 60 * 60");
+        yield return new GUnit("Day", "d", second, calculation: "<vV> * 60 * 60 * 24");
+        yield return new GUnit("Week", "wk", second, calculation: "<vV> * 60 * 60 * 24 * 7");
         
         #endregion
         
         #region TEMPERATURE
         
-        var kelvin = new GUnit("Kelvin", "°K", min:0);
+        var kelvin = new GUnit("Kelvin", "K", min:0);
         yield return kelvin;
         yield return new GUnit("Celsius", "°C", kelvin, calculation: "<vV> + 273.15", min:-273.15);
-        yield return new GUnit("Fahrenheit", "°F", kelvin, calculation: "((<vV> - 32) / 1.79999999) + 273.15", min:-459.67);
+        yield return new GUnit("Fahrenheit", "°F", kelvin, calculation: "((<vV> - 32) / 1.8) + 273.15", inverse: "((<vV> - 273.15) * 1.8) + 32", min:-459.67);
         
         #endregion
         
         # region MASS
-        var kilo = new GUnit("Kilogram", "Kg");
+        var kilo = new GUnit("Kilogram", "kg");
         yield return kilo;
-        yield return new GUnit("Milligram", "mg", kilo, calculation: "<vV> * 1000 * 1000");
-        yield return new GUnit("Gram", "g", kilo, calculation: "<vV> * 1000");
-        yield return new GUnit("Tonne", "T", kilo, calculation: "<vV> * 0.001");
+        yield return new GUnit("Milligram", "mg", kilo, calculation: "<vV> / 1000 / 1000");
+        yield return new GUnit("Gram", "g", kilo, calculation: "<vV> / 1000");
+        yield return new GUnit("Tonne", "t", kilo, calculation: "<vV> * 1000");
 
-        yield return new GUnit("Ounce", "oz", kilo, calculation: "<vV> * 35.2739619");
-        yield return new GUnit("Pound", "lb", kilo, calculation: "<vV> * 2.204623");
+        yield return new GUnit("Ounce", "oz", kilo, calculation: "<vV> * 0.028349523125");
+        yield return new GUnit("Pound", "lb", kilo, calculation: "<vV> * 0.45359237");
         
         #endregion
         
